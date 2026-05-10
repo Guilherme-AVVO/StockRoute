@@ -8,8 +8,8 @@
 CREATE TABLE products (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   sku        TEXT        NOT NULL,
-  name       TEXT        NOT NULL,
-  unit       TEXT        NOT NULL,
+  name       VARCHAR(150) NOT NULL,
+  unit       VARCHAR(10) NOT NULL,
   image_url  TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

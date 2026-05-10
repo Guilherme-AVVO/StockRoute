@@ -6,9 +6,9 @@
 
 CREATE TABLE orders (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_number  TEXT        NOT NULL,
-  customer_name TEXT        NOT NULL,
-  status        TEXT        NOT NULL DEFAULT 'PENDING',
+  order_number  VARCHAR(50)  NOT NULL,
+  customer_name VARCHAR(150) NOT NULL,
+  status        VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
   pdf_url       TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -17,8 +17,8 @@ CREATE TABLE orders (
   CONSTRAINT orders_status_check        CHECK  (status IN ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'))
 );
 
--- Lookup por número do pedido (busca direta e unicidade)
-CREATE UNIQUE INDEX idx_orders_order_number ON orders (order_number);
+-- Lookup por número do pedido (já coberto pela constraint UNIQUE)
+-- Filtro por status (listagens do painel, muito frequente)
 -- Filtro por status (listagens do painel, muito frequente)
 CREATE INDEX idx_orders_status             ON orders (status);
 -- Ordenação padrão por data de criação

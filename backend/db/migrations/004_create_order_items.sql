@@ -16,7 +16,7 @@ CREATE TABLE order_items (
   quantity         INTEGER     NOT NULL,
   picked_quantity  INTEGER     NOT NULL DEFAULT 0,
   missing_quantity INTEGER     NOT NULL DEFAULT 0,
-  status           TEXT        NOT NULL DEFAULT 'PENDING',
+  status           VARCHAR(20) NOT NULL DEFAULT 'PENDING',
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
