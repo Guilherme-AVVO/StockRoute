@@ -2,16 +2,31 @@
 import 'dotenv/config';
 import postgres from 'postgres';
 
-const sql = postgres({
-  host:     process.env.DB_HOST,
-  port:     process.env.DB_PORT,
-  user:     process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+function getSslConfig() {
+  if (process.env.DB_SSL !== 'true') return false;
+  if (process.env.DB_SSL_REJECT_UNAUTHORIZED === 'false') {
+    return { rejectUnauthorized: false };
+  }
+  return 'require';
+}
+
+const commonOptions = {
   max:      20,
   idle_timeout:    30,
   connect_timeout: 2,
-});
+  ssl: getSslConfig(),
+};
+
+const sql = process.env.DATABASE_URL
+  ? postgres(process.env.DATABASE_URL, commonOptions)
+  : postgres({
+      host:     process.env.DB_HOST,
+      port:     process.env.DB_PORT,
+      user:     process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      ...commonOptions,
+    });
 
 // Teste de conexão ao iniciar o módulo
 (async () => {

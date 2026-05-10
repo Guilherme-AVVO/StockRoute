@@ -38,5 +38,5 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`[Server] API rodando em http://localhost:${PORT}`);
+  console.log(`[Server] API rodando na porta ${PORT}`);
 });
