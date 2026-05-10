@@ -56,7 +56,16 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.local
+.env.*.local
 .env.test
+
+# Upload de arquivos
+uploads/
+
+# Builds gerados localmente
+dist/
+build/
 
 # next.js build output
 .next
@@ -79,3 +88,8 @@ typings/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Claude Code
+.claude/
+CLAUDE.md
+AGENTS.md
