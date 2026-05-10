@@ -1,0 +1,30 @@
+/* Badges de status — usam variáveis CSS definidas em AdminDashboard.css */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badge.rascunho      { color: #6a6a78; background: #ececf5; }
+.badge.aguardando    { color: #8a5a00; background: var(--warning-bg); }
+.badge.em-separacao  { color: var(--primary); background: var(--primary-fixed); }
+.badge.concluido     { color: var(--success); background: var(--success-bg); }
+.badge.observacao    { color: #c25100; background: #ffe0c8; }
+.badge.cancelado     { color: var(--error); background: var(--error-bg); }

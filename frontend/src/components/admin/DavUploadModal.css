@@ -1,0 +1,277 @@
+/* Modal de upload de DAV com drag-and-drop */
+
+/* Overlay com blur sobre a dashboard */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,30,80,0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn .2s ease;
+}
+
+.modal-overlay.open { display: flex; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Caixa do modal */
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
+  width: 100%;
+  max-width: 560px;
+  box-shadow: 0 24px 60px rgba(20,30,80,0.25);
+  overflow: hidden;
+  animation: slideUp .25s cubic-bezier(.34,1.2,.64,1);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 40px);
+}
+
+.modal-head {
+  padding: 22px 24px 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.modal-head h2 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.modal-head .sub {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--on-surface-variant);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  background: var(--surface-low);
+  color: var(--on-surface);
+}
+
+.modal-body {
+  padding: 18px 24px;
+  overflow-y: auto;
+}
+
+.modal-foot {
+  padding: 16px 24px 22px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--surface-variant);
+  background: var(--surface-low);
+}
+
+/* Área de drag-and-drop */
+.dropzone {
+  position: relative;
+  border: 2px dashed var(--outline);
+  border-radius: var(--radius-lg);
+  background: var(--surface-low);
+  padding: 36px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .18s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dropzone:hover      { border-color: var(--primary); background: #eef0ff; }
+
+.dropzone.dragover {
+  border-color: var(--primary);
+  background: var(--primary-fixed);
+  border-style: solid;
+  transform: scale(1.01);
+  box-shadow: 0 0 0 4px rgba(42,77,215,0.15);
+}
+
+.dropzone.has-error {
+  border-color: var(--error);
+  background: #fff1f0;
+}
+
+.dropzone input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.dz-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.dropzone.dragover .dz-icon {
+  background: #fff;
+  transform: translateY(-2px);
+}
+
+.dz-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.dz-sub  { font-size: 13px; color: var(--on-surface-variant); }
+.dz-hint { font-size: 11px; color: var(--outline-strong); margin-top: 4px; letter-spacing: 0.02em; }
+
+/* Card de arquivo selecionado */
+.file-card {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface-low);
+  border: 1.5px solid var(--success);
+  border-radius: var(--radius-md);
+}
+
+.file-card.error {
+  border-color: var(--error);
+  background: #fff1f0;
+}
+
+.file-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-card.error .file-icon { color: var(--error); }
+
+.file-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--on-surface);
+  word-break: break-all;
+}
+
+.file-meta {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-status {
+  color: var(--success);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.file-card.error .file-status { color: var(--error); }
+
+.file-remove {
+  background: transparent;
+  border: none;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: inline-flex;
+}
+
+.file-remove:hover {
+  background: rgba(0,0,0,0.05);
+  color: var(--error);
+}
+
+/* Mensagens */
+.modal-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--error-bg);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: #7a0014;
+  font-weight: 500;
+}
+
+.modal-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--success-bg);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--success);
+  font-weight: 500;
+}
+
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .modal { max-width: 100%; border-radius: var(--radius-xl); }
+  .modal-head { padding: 18px 18px 4px; }
+  .modal-head h2 { font-size: 18px; }
+  .modal-body { padding: 14px 18px; }
+  .modal-foot {
+    padding: 14px 18px 18px;
+    flex-direction: column-reverse;
+  }
+  .modal-foot .btn { width: 100%; }
+  .dropzone { padding: 28px 16px; }
+}

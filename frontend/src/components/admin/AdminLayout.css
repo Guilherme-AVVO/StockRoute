@@ -1,0 +1,32 @@
+/* Layout de grade do painel ADMIN: sidebar fixa + coluna de conteúdo */
+
+.admin-app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+.admin-main-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* evita overflow em colunas flex */
+}
+
+.content {
+  padding: 28px 32px 48px;
+  max-width: 1440px;
+  width: 100%;
+}
+
+/* Mobile — sidebar colapsada */
+@media (max-width: 900px) {
+  .admin-app {
+    grid-template-columns: 1fr;
+  }
+
+  .content {
+    padding: 16px;
+  }
+}

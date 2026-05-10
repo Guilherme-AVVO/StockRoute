@@ -1,11 +1,12 @@
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 
-// Protege a tela principal usando apenas o estado de autenticação do contexto.
-// Enquanto a sessão salva é validada, evita piscar a tela de login.
+// Roteia para a tela correta baseado em autenticação e role do usuário.
+// ADMIN → AdminDashboard | outros → Dashboard | não autenticado → Login
 function AppRouter() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -23,7 +24,9 @@ function AppRouter() {
     );
   }
 
-  return isAuthenticated ? <Dashboard /> : <Login />;
+  if (!isAuthenticated) return <Login />;
+
+  return user?.role === 'ADMIN' ? <AdminDashboard /> : <Dashboard />;
 }
 
 export default function App() {

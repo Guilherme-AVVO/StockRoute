@@ -1,0 +1,55 @@
+/* Card de itens ignorados do DAV */
+
+.ignored-card {
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.ignored-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ignored-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--surface-variant);
+  align-items: center;
+}
+
+.ignored-item:last-of-type { border-bottom: none; }
+
+.ignored-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.ignored-desc {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-top: 2px;
+}
+
+.ignored-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: var(--surface-low);
+  color: var(--on-surface-variant);
+  border-radius: 999px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.ignored-manage-btn {
+  width: 100%;
+  margin-top: 14px;
+}

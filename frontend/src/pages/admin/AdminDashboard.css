@@ -1,0 +1,253 @@
+/* ============================================================
+   Tokens de design compartilhados — herdam a identidade da tela de login
+   ============================================================ */
+:root {
+  --primary: #2a4dd7;
+  --primary-hover: #4868f1;
+  --primary-dark: #0034c0;
+  --primary-fixed: #dde1ff;
+  --primary-fixed-dim: #b9c3ff;
+  --bg: #fbf8ff;
+  --surface: #ffffff;
+  --surface-low: #f4f2fe;
+  --surface-variant: #e2e1ed;
+  --outline: #c4c5d7;
+  --outline-strong: #747686;
+  --on-surface: #1a1b23;
+  --on-surface-variant: #444654;
+  --secondary: #5a5e6d;
+  --error: #ba1a1a;
+  --error-bg: #ffdad6;
+  --success: #1f7a4d;
+  --success-bg: #c8edd9;
+  --warning: #8a5a00;
+  --warning-bg: #ffeac8;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  --shadow-sm: 0 1px 2px rgba(42,77,215,0.04);
+  --shadow-md: 0 4px 12px rgba(42,77,215,0.08), 0 1px 2px rgba(42,77,215,0.04);
+  --shadow-lg: 0 8px 24px rgba(42,77,215,0.10), 0 2px 4px rgba(42,77,215,0.04);
+
+  --font-display: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+
+/* Reset base da área admin */
+body {
+  background: var(--bg);
+  color: var(--on-surface);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================
+   Botões globais (usados em toda a área admin)
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all .18s;
+  text-decoration: none;
+  min-height: 44px;
+  line-height: 1;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--primary-hover) 0%, var(--primary) 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(42,77,215,0.25);
+}
+
+.btn-primary:hover {
+  filter: brightness(0.97);
+  box-shadow: 0 6px 16px rgba(42,77,215,0.30);
+}
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--primary);
+  border-color: var(--outline);
+}
+
+.btn-secondary:hover {
+  background: var(--surface-low);
+  border-color: var(--primary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--on-surface-variant);
+}
+
+.btn-ghost:hover {
+  background: var(--surface-low);
+  color: var(--on-surface);
+}
+
+.btn-sm {
+  padding: 8px 12px;
+  font-size: 13px;
+  min-height: 36px;
+}
+
+/* Card base */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--surface-variant);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================================
+   Blobs decorativos (mesmos da tela de login)
+   ============================================================ */
+.blob-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.45;
+}
+
+.blob.b1 { top: -120px; right: -100px; width: 360px; height: 360px; background: var(--primary-fixed-dim); }
+.blob.b2 { bottom: -140px; left: -120px; width: 420px; height: 420px; background: var(--primary-fixed); }
+
+/* ============================================================
+   Hero operacional
+   ============================================================ */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+  padding: 28px 32px;
+  background: linear-gradient(120deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #fff;
+  border-radius: var(--radius-2xl);
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(42,77,215,0.18);
+}
+
+.hero::before,
+.hero::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.18;
+  filter: blur(40px);
+}
+
+.hero::before { top: -80px; right: 80px; width: 220px; height: 220px; background: #fff; }
+.hero::after  { bottom: -100px; right: -40px; width: 240px; height: 240px; background: #b9c3ff; }
+
+.hero h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.hero p {
+  margin: 8px 0 0;
+  color: rgba(255,255,255,0.85);
+  font-size: 14px;
+  max-width: 560px;
+  line-height: 1.5;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-actions .btn-primary {
+  background: #fff;
+  color: var(--primary);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.hero-actions .btn-secondary {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border-color: rgba(255,255,255,0.3);
+}
+
+.hero-actions .btn-secondary:hover {
+  background: rgba(255,255,255,0.2);
+  border-color: rgba(255,255,255,0.5);
+}
+
+/* ============================================================
+   Grid de KPIs
+   ============================================================ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+/* ============================================================
+   Grid de 2 colunas (tabela + sidebar)
+   ============================================================ */
+.two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ============================================================
+   Responsividade — tablet
+   ============================================================ */
+@media (max-width: 1280px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .two-col    { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   Responsividade — mobile
+   ============================================================ */
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 22px 20px;
+  }
+
+  .hero h1 { font-size: 22px; }
+
+  .hero-actions { flex-direction: column; }
+  .hero-actions .btn { width: 100%; }
+
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
