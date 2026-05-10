@@ -50,8 +50,8 @@ psql -U stockroute_user -d stockroute \
 ## Tabelas
 
 ### `users`
-Usuários do sistema. Dois papéis: `ADMIN` e `ESTOQUISTA`. Senha hasheada pelo backend (bcrypt) antes de salvar.
-
+Usuários do sistema. Dois papéis: `ADMIN` e `ESTOQUISTA`. Senha hasheada pelo backend (bcrypt) antes de salvar.  
+*Otimizações:* Campos de nome e email usam limites razoáveis (`VARCHAR(150)` e `VARCHAR(255)`) com constraint (`users_email_format`) para forçar presença de `@` no email.
 ### `products`
 Produtos do estoque. Cada produto tem uma **unidade de medida fixa** (`unit`). Caixa de parafuso e saco de parafuso são produtos distintos.
 
@@ -67,10 +67,10 @@ Produtos do estoque. Cada produto tem uma **unidade de medida fixa** (`unit`). C
 | `M`  | Metro |
 
 ### `orders`
-Pedidos importados de DAVs (PDFs). Cada pedido tem um `order_number` único. O `pdf_url` aponta para o arquivo original que foi lido para gerar o pedido.
+Pedidos importados de DAVs (PDFs). Cada pedido tem um `order_number` único (`VARCHAR(50)`). O `pdf_url` aponta para o arquivo original que foi lido para gerar o pedido.
 
-**Status possíveis:** `PENDING` → `IN_PROGRESS` → `COMPLETED` / `CANCELLED`
-
+**Status possíveis:** `PENDING` → `IN_PROGRESS` → `COMPLETED` / `CANCELLED`  
+*Otimizações:* Foi removido o índice `idx_orders_order_number` por ser redundante, uma vez que a constraint `UNIQUE` já gera e mantém um índice internamente no Postgres de forma otimizada.
 ### `order_items`
 Itens de cada pedido. Rastreia quantidades pedidas, separadas e faltantes.
 
@@ -109,7 +109,6 @@ Registros de itens não encontrados. `reason` é texto livre, sem enum. Um item 
 | `idx_users_role` | users | Listagem por papel |
 | `idx_products_sku` | products | Import de DAV — lookup de SKU |
 | `idx_products_name` | products | Busca textual (GIN full-text) |
-| `idx_orders_order_number` | orders | Deduplicação de DAV importado |
 | `idx_orders_status` | orders | Filtro de painel por status |
 | `idx_orders_created_at` | orders | Ordenação padrão |
 | `idx_order_items_order_id` | order_items | Query mais frequente do sistema |
