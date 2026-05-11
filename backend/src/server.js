@@ -27,6 +27,9 @@ const allowedOrigins = [
   .map(normalizeOrigin)
   .filter(Boolean);
 
+// Aceita qualquer preview deploy do projeto na Vercel (stock-route-*.vercel.app)
+const vercelPreviewPattern = /^https:\/\/stock-route[a-z0-9-]*\.vercel\.app$/;
+
 // CORS restrito às origens configuradas — não use '*' com credentials.
 app.use(cors({
   origin: (origin, callback) => {
@@ -36,10 +39,11 @@ app.use(cors({
     }
 
     const normalizedOrigin = normalizeOrigin(origin);
-    if (allowedOrigins.includes(normalizedOrigin)) {
+    if (allowedOrigins.includes(normalizedOrigin) || vercelPreviewPattern.test(normalizedOrigin)) {
       return callback(null, true);
     }
 
+    console.error(`[Server Error] Origem não permitida pelo CORS: ${origin}`);
     return callback(new Error(`Origem não permitida pelo CORS: ${origin}`));
   },
   credentials: true,
