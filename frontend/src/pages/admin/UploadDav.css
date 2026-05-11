@@ -1,0 +1,481 @@
+/* ============================================================
+   Página Upload DAV — ADMIN
+   Reaproveita tokens, botões, cards e hero da Dashboard ADMIN.
+   ============================================================ */
+
+.upload-dav-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.upload-dav-hero {
+  margin-bottom: 0;
+}
+
+/* Layout principal: upload grande + cards laterais */
+.upload-dav-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.upload-dav-main-card {
+  padding: 20px;
+}
+
+.upload-dav-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.upload-dav-info-card {
+  padding: 20px;
+}
+
+.upload-dav-info-card h2 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.upload-dav-info-card p {
+  margin: 14px 0 0;
+  color: var(--on-surface-variant);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Card de upload com área de drag-and-drop */
+.upload-dav-dropzone {
+  min-height: 340px;
+  border: 2px dashed var(--outline);
+  border-radius: var(--radius-xl);
+  background: var(--surface-low);
+  padding: 34px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  position: relative;
+  transition: border-color .18s, background .18s, box-shadow .18s, transform .18s;
+}
+
+.upload-dav-dropzone:hover {
+  border-color: var(--primary);
+  background: #eef0ff;
+}
+
+/* Estado drag ativo */
+.upload-dav-dropzone.drag-active {
+  border-color: var(--primary);
+  border-style: solid;
+  background: var(--primary-fixed);
+  box-shadow: 0 0 0 4px rgba(42,77,215,0.14);
+  transform: translateY(-1px);
+}
+
+.upload-dav-dropzone.has-error {
+  border-color: var(--error);
+  background: #fff1f0;
+}
+
+.upload-dav-input {
+  display: none;
+}
+
+.upload-dav-icon,
+.upload-dav-file-icon {
+  color: var(--primary);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.upload-dav-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: var(--radius-xl);
+}
+
+.upload-dav-dropzone h2 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.upload-dav-dropzone p {
+  margin: -4px 0 0;
+  color: var(--on-surface-variant);
+  font-size: 14px;
+}
+
+.upload-dav-dropzone span {
+  color: var(--outline-strong);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.upload-dav-feedback {
+  margin-top: 14px;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.upload-dav-feedback.success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.upload-dav-feedback.error {
+  background: var(--error-bg);
+  color: #7a0014;
+}
+
+/* Card de arquivo selecionado */
+.upload-dav-file-card {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--success);
+  background: var(--surface-low);
+}
+
+.upload-dav-file-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+}
+
+.upload-dav-file-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.upload-dav-file-info strong {
+  font-size: 14px;
+  color: var(--on-surface);
+  word-break: break-word;
+}
+
+.upload-dav-file-info span {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+.upload-dav-ready-badge {
+  justify-self: start;
+  background: var(--success-bg);
+  color: var(--success);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.upload-dav-file-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Cards laterais */
+.upload-dav-flow,
+.upload-dav-rules {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upload-dav-flow {
+  counter-reset: flow-step;
+}
+
+.upload-dav-flow li,
+.upload-dav-rules li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--on-surface-variant);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.upload-dav-flow li::before {
+  counter-increment: flow-step;
+  content: counter(flow-step);
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--primary-fixed);
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.upload-dav-rules li::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--primary-fixed-dim);
+  flex-shrink: 0;
+}
+
+/* Tabela de DAVs recentes */
+.upload-dav-recent-card {
+  padding: 0;
+  overflow: hidden;
+  scroll-margin-top: 18px;
+}
+
+.upload-dav-table-head {
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--surface-variant);
+}
+
+.upload-dav-table-head h2 {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.upload-dav-table-head p {
+  margin: 3px 0 0;
+  color: var(--on-surface-variant);
+  font-size: 13px;
+}
+
+.upload-dav-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.upload-dav-table th {
+  text-align: left;
+  padding: 12px 22px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+  background: var(--surface-low);
+  border-bottom: 1px solid var(--surface-variant);
+}
+
+.upload-dav-table td {
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--surface-variant);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.upload-dav-table tr:last-child td {
+  border-bottom: none;
+}
+
+.upload-dav-table tr:hover td {
+  background: rgba(244,242,254,0.5);
+}
+
+.upload-dav-date {
+  color: var(--on-surface-variant);
+  font-size: 13px;
+}
+
+.upload-dav-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.upload-dav-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.upload-dav-status.aguardando-revisao {
+  color: var(--warning);
+  background: var(--warning-bg);
+}
+
+.upload-dav-status.em-separacao {
+  color: var(--primary);
+  background: var(--primary-fixed);
+}
+
+.upload-dav-status.observacao {
+  color: #c25100;
+  background: #ffe0c8;
+}
+
+.upload-dav-status.concluido {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.upload-dav-action {
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.upload-dav-action:hover {
+  text-decoration: underline;
+}
+
+.upload-dav-mobile-list {
+  display: none;
+}
+
+/* Responsividade */
+@media (max-width: 1280px) {
+  .upload-dav-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-dav-side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .upload-dav-grid,
+  .upload-dav-side {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-dav-main-card {
+    padding: 14px;
+  }
+
+  .upload-dav-dropzone {
+    min-height: 280px;
+    padding: 28px 16px;
+  }
+
+  .upload-dav-file-card {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .upload-dav-ready-badge,
+  .upload-dav-file-actions {
+    grid-column: 1 / -1;
+  }
+
+  .upload-dav-file-actions {
+    flex-direction: column;
+  }
+
+  .upload-dav-file-actions .btn {
+    width: 100%;
+  }
+
+  .upload-dav-table {
+    display: none;
+  }
+
+  .upload-dav-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .upload-dav-mobile-card {
+    border: 1px solid var(--surface-variant);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    background: var(--surface);
+  }
+
+  .upload-dav-mobile-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .upload-dav-mobile-head > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .upload-dav-mobile-head strong {
+    font-size: 14px;
+    word-break: break-word;
+  }
+
+  .upload-dav-mobile-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .upload-dav-mobile-grid span {
+    display: block;
+    color: var(--outline-strong);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .upload-dav-mobile-grid strong {
+    font-size: 13px;
+    color: var(--on-surface);
+  }
+}
+
+@media (max-width: 520px) {
+  .upload-dav-mobile-head {
+    flex-direction: column;
+  }
+
+  .upload-dav-mobile-grid {
+    grid-template-columns: 1fr;
+  }
+}

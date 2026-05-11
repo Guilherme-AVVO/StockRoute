@@ -8,6 +8,14 @@ import RecentDavTable from '../../components/admin/RecentDavTable.jsx';
 import PendingIssuesCard from '../../components/admin/PendingIssuesCard.jsx';
 import IgnoredDavItemsCard from '../../components/admin/IgnoredDavItemsCard.jsx';
 import DavUploadModal from '../../components/admin/DavUploadModal.jsx';
+import AdminProducts from './AdminProducts.jsx';
+import UploadDav from './UploadDav.jsx';
+import AdminReviews from './AdminReviews.jsx';
+import AdminOrders from './AdminOrders.jsx';
+import AdminIgnoredItems from './AdminIgnoredItems.jsx';
+import AdminUsers from './AdminUsers.jsx';
+import AdminHistory from './AdminHistory.jsx';
+import AdminSettings from './AdminSettings.jsx';
 import './AdminDashboard.css';
 
 // TODO: substituir STATS por dados reais da API quando endpoints estiverem disponíveis
@@ -90,7 +98,8 @@ const STATS = [
 ];
 
 export default function AdminDashboard() {
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen,     setModalOpen]     = useState(false);
+  const [activeSection, setActiveSection] = useState('dashboard');
 
   return (
     <>
@@ -100,60 +109,112 @@ export default function AdminDashboard() {
         <div className="blob b2" />
       </div>
 
-      <AdminLayout onOpenUpload={() => setModalOpen(true)}>
-        {/* Hero operacional */}
-        <section className="hero">
-          <div>
-            <h1>Dashboard ADMIN</h1>
-            <p>
-              Controle os DAVs enviados, revise itens e acompanhe a separação no estoque
-              em tempo real.
-            </p>
-          </div>
-          <div className="hero-actions">
-            <button
-              className="btn btn-primary"
-              type="button"
-              onClick={() => setModalOpen(true)}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-              </svg>
-              Enviar novo DAV
-            </button>
-            <button className="btn btn-secondary" type="button">
-              Ver revisões pendentes
-            </button>
-          </div>
-        </section>
+      <AdminLayout
+        onOpenUpload={() => setModalOpen(true)}
+        activeSection={activeSection}
+        onNavigate={setActiveSection}
+      >
+        {activeSection === 'products' && (
+          // Seção de cadastro de produtos
+          <AdminProducts />
+        )}
 
-        {/* Grid de KPIs */}
-        <section className="stats-grid">
-          {STATS.map((stat) => (
-            <StatCard
-              key={stat.label}
-              icon={stat.icon}
-              value={stat.value}
-              label={stat.label}
-              description={stat.description}
-              trend={stat.trend}
-              trendDown={stat.trendDown}
-              iconStyle={stat.iconStyle}
-            />
-          ))}
-        </section>
+        {activeSection === 'uploadDav' && (
+          // Seção de upload visual de DAV
+          <UploadDav />
+        )}
 
-        {/* Fluxo visual do pedido */}
-        <ProcessFlow />
+        {activeSection === 'reviews' && (
+          // Seção visual de revisão dos itens extraídos do DAV
+          <AdminReviews onNavigate={setActiveSection} />
+        )}
 
-        {/* Tabela + painel lateral */}
-        <section className="two-col">
-          <RecentDavTable />
-          <div>
-            <PendingIssuesCard />
-            <IgnoredDavItemsCard />
-          </div>
-        </section>
+        {activeSection === 'orders' && (
+          // Seção de acompanhamento dos pedidos DAV
+          <AdminOrders
+            onNavigate={setActiveSection}
+            onOpenUpload={() => setModalOpen(true)}
+          />
+        )}
+
+        {activeSection === 'ignoredItems' && (
+          // Seção de regras de itens DAV ignorados no picking
+          <AdminIgnoredItems />
+        )}
+
+        {activeSection === 'users' && (
+          // Seção de gestão visual de usuários
+          <AdminUsers />
+        )}
+
+        {activeSection === 'history' && (
+          // Seção de histórico e rastreabilidade
+          <AdminHistory />
+        )}
+
+        {activeSection === 'settings' && (
+          // Seção de configurações visuais do sistema
+          <AdminSettings onNavigate={setActiveSection} />
+        )}
+
+        {activeSection === 'dashboard' && (
+          // Seção principal da dashboard
+          <>
+            {/* Hero operacional */}
+            <section className="hero">
+              <div>
+                <h1>Dashboard ADMIN</h1>
+                <p>
+                  Controle os DAVs enviados, revise itens e acompanhe a separação no estoque
+                  em tempo real.
+                </p>
+              </div>
+              <div className="hero-actions">
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={() => setModalOpen(true)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                  </svg>
+                  Enviar novo DAV
+                </button>
+                <button className="btn btn-secondary" type="button">
+                  Ver revisões pendentes
+                </button>
+              </div>
+            </section>
+
+            {/* Grid de KPIs */}
+            <section className="stats-grid">
+              {STATS.map((stat) => (
+                <StatCard
+                  key={stat.label}
+                  icon={stat.icon}
+                  value={stat.value}
+                  label={stat.label}
+                  description={stat.description}
+                  trend={stat.trend}
+                  trendDown={stat.trendDown}
+                  iconStyle={stat.iconStyle}
+                />
+              ))}
+            </section>
+
+            {/* Fluxo visual do pedido */}
+            <ProcessFlow />
+
+            {/* Tabela + painel lateral */}
+            <section className="two-col">
+              <RecentDavTable />
+              <div>
+                <PendingIssuesCard />
+                <IgnoredDavItemsCard />
+              </div>
+            </section>
+          </>
+        )}
       </AdminLayout>
 
       {/* Modal de upload — controlado pelo estado desta página */}

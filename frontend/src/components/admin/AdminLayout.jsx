@@ -5,7 +5,7 @@ import AdminSidebar from './AdminSidebar.jsx';
 import AdminHeader from './AdminHeader.jsx';
 import './AdminLayout.css';
 
-export default function AdminLayout({ children, onOpenUpload }) {
+export default function AdminLayout({ children, onOpenUpload, activeSection, onNavigate }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   function toggleMenu() { setMenuOpen((v) => !v); }
@@ -13,7 +13,12 @@ export default function AdminLayout({ children, onOpenUpload }) {
 
   return (
     <div className="admin-app">
-      <AdminSidebar isOpen={menuOpen} onClose={closeMenu} />
+      <AdminSidebar
+        isOpen={menuOpen}
+        onClose={closeMenu}
+        activeSection={activeSection}
+        onNavigate={(section) => { onNavigate?.(section); closeMenu(); }}
+      />
 
       {/* Coluna principal: header + conteúdo */}
       <div className="admin-main-col">
