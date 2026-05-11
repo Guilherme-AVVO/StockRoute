@@ -5,7 +5,8 @@ validateEnv();
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import authRoutes from './routes/authRoutes.js';
+import authRoutes    from './routes/authRoutes.js';
+import productRoutes from './routes/productRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
@@ -56,7 +57,8 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', message: 'API StockRoute funcionando' });
 });
 
-app.use('/auth', authRoutes);
+app.use('/auth',     authRoutes);
+app.use('/products', productRoutes);
 
 // 404 para rotas inexistentes
 app.use((_req, res) => {
