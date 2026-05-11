@@ -13,9 +13,35 @@ const app = express();
 // Headers de segurança HTTP
 app.use(helmet());
 
-// CORS restrito à origem configurada — não deixe '*' em produção
+function normalizeOrigin(origin) {
+  return origin?.trim().replace(/\/$/, '');
+}
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+  ...(process.env.FRONTEND_URLS
+    ? process.env.FRONTEND_URLS.split(',')
+    : []),
+]
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
+// CORS restrito às origens configuradas — não use '*' com credentials.
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Requisições sem Origin vêm de curl, Postman ou health checks.
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const normalizedOrigin = normalizeOrigin(origin);
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origem não permitida pelo CORS: ${origin}`));
+  },
   credentials: true,
 }));
 
