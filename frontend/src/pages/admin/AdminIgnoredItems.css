@@ -640,3 +640,186 @@
 }
 .btn-danger:hover:not(:disabled) { background: #b71c1c; }
 .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ============================================================
+   Abas visuais para alternar entre Ocultos / Regras / Não vinculados
+   ============================================================ */
+
+.ignored-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-low);
+  border: 1px solid var(--surface-variant);
+  border-radius: var(--radius-lg);
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.ignored-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ignored-tab:hover {
+  background: rgba(42,77,215,0.06);
+  color: var(--primary);
+}
+
+.ignored-tab.active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: 0 1px 3px rgba(20,30,80,0.08);
+}
+
+.ignored-tab .tab-count {
+  background: var(--surface-variant);
+  color: var(--on-surface-variant);
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-weight: 800;
+  min-width: 22px;
+  text-align: center;
+}
+
+.ignored-tab.active .tab-count {
+  background: var(--primary-fixed);
+  color: var(--primary);
+}
+
+/* Badge "Oculto por regra" — destaque visual para itens ocultos por padrão */
+.ignored-by-rule-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: #fff2dd;
+  color: #b75a00;
+  margin-top: 4px;
+}
+
+/* Badge "Não vinculado" — laranja/amarelo conforme padrão visual */
+.ignored-unlinked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: #fff2dd;
+  color: #b75a00;
+}
+
+/* Coluna "Código/Ref." — destaque para o SKU/referência do fabricante */
+.ignored-code-ref {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--on-surface);
+  background: var(--surface-low);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--surface-variant);
+  display: inline-block;
+}
+
+/* Linha pequena auxiliar para mostrar DAV/cliente abaixo do item */
+.ignored-source-line {
+  display: block;
+  color: var(--on-surface-variant);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* Aviso visual sobre dados mockados (transparência para devs) */
+.ignored-mock-warning {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fff8e1;
+  color: #6a4a00;
+  border: 1px dashed #e0c060;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Modal de regra de ocultação */
+.ignored-rule-type-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.ignored-rule-type-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--surface-variant);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 13px;
+  background: var(--surface);
+}
+
+.ignored-rule-type-option:hover {
+  background: var(--surface-low);
+}
+
+.ignored-rule-type-option.selected {
+  border-color: var(--primary);
+  background: var(--primary-fixed);
+}
+
+.ignored-rule-type-option input {
+  accent-color: var(--primary);
+}
+
+/* Status do item DAV (vinculado/não vinculado/oculto) */
+.ignored-item-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ignored-item-status.linked {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.ignored-item-status.hidden {
+  color: #6a6a78;
+  background: #ececf5;
+}
+
+.ignored-item-status.unlinked {
+  color: #b75a00;
+  background: #fff2dd;
+}
