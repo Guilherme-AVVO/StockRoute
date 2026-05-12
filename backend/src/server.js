@@ -15,6 +15,25 @@ import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
 
+// Trust proxy — necessário quando o backend roda atrás de proxy/load balancer
+// (Render, Railway, Fly, etc.) para que o express-rate-limit consiga ler o IP
+// real do cliente em X-Forwarded-For. Usamos valor numérico (número de hops
+// confiáveis) em vez de `true` para evitar spoofing do header.
+//
+// - TRUST_PROXY=1   → confia em 1 proxy à frente (padrão Render/Railway)
+// - TRUST_PROXY=2+  → mais hops, se houver CDN extra
+// - sem env e prod  → assume 1
+// - sem env e dev   → não confia (default do Express)
+const TRUST_PROXY = process.env.TRUST_PROXY;
+if (TRUST_PROXY) {
+  const trustProxyValue = Number.isNaN(Number(TRUST_PROXY))
+    ? TRUST_PROXY
+    : Number(TRUST_PROXY);
+  app.set('trust proxy', trustProxyValue);
+} else if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Headers de segurança HTTP
 app.use(helmet());
 
