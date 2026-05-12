@@ -1,7 +1,5 @@
-// Modal de upload de DAV com drag-and-drop.
-// Validações: apenas PDF, máximo 10 MB.
-// TODO: implementar envio real para o backend quando endpoint estiver disponível.
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { importDav } from '../../services/orderService.js';
 import './DavUploadModal.css';
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -24,10 +22,11 @@ function PdfIcon({ size = 28 }) {
   );
 }
 
-export default function DavUploadModal({ isOpen, onClose }) {
+export default function DavUploadModal({ isOpen, onClose, onSuccess }) {
   const [file, setFile] = useState(null);
-  const [error, setError] = useState(null);       // mensagem de erro de validação
-  const [success, setSuccess] = useState(false);   // flag de envio simulado
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -53,11 +52,11 @@ export default function DavUploadModal({ isOpen, onClose }) {
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
-  // Limpa estado ao fechar
   function handleClose() {
     setFile(null);
     setError(null);
-    setSuccess(false);
+    setResult(null);
+    setLoading(false);
     setIsDragOver(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
     onClose();
@@ -66,7 +65,7 @@ export default function DavUploadModal({ isOpen, onClose }) {
   // Valida e aplica o arquivo escolhido
   const handleFile = useCallback((incoming) => {
     setError(null);
-    setSuccess(false);
+    setResult(null);
 
     const isPdf = incoming.type === 'application/pdf' || /\.pdf$/i.test(incoming.name);
     if (!isPdf) {
@@ -92,7 +91,7 @@ export default function DavUploadModal({ isOpen, onClose }) {
   function resetFile() {
     setFile(null);
     setError(null);
-    setSuccess(false);
+    setResult(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
@@ -110,16 +109,24 @@ export default function DavUploadModal({ isOpen, onClose }) {
     handleFile(files[0]);
   }
 
-  // Envio simulado — integrar com API real futuramente
-  function submitDav() {
-    if (!file) return;
-    setSuccess(true);
-    setTimeout(handleClose, 1800);
+  async function submitDav() {
+    if (!file || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await importDav(file);
+      setResult(data);
+      onSuccess?.();
+    } catch (err) {
+      setError(err.message || 'Erro ao enviar DAV');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const dropzoneClass = [
     'dropzone',
-    isDragOver    ? 'dragover'  : '',
+    isDragOver     ? 'dragover'  : '',
     error && !file ? 'has-error' : '',
   ].filter(Boolean).join(' ');
 
@@ -200,7 +207,6 @@ export default function DavUploadModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* Mensagem de erro de validação */}
           {error && (
             <div className="modal-error">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -211,13 +217,13 @@ export default function DavUploadModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* Mensagem de sucesso (envio simulado) */}
-          {success && (
+          {result && (
             <div className="modal-success">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="m5 12 5 5L20 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              PDF selecionado com sucesso. Upload real será integrado na próxima etapa.
+              DAV {result.orderNumber} importado — {result.counts.found} vinculados,{' '}
+              {result.counts.unlinked} sem vínculo, {result.counts.ignored} ignorados.
             </div>
           )}
         </div>
@@ -227,17 +233,27 @@ export default function DavUploadModal({ isOpen, onClose }) {
           <button className="btn btn-secondary" type="button" onClick={handleClose}>
             Cancelar
           </button>
-          <button
-            className="btn btn-primary"
-            type="button"
-            disabled={!file || success}
-            onClick={submitDav}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h14m-7-7 7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Enviar DAV
-          </button>
+          {result ? (
+            <button className="btn btn-primary" type="button" onClick={handleClose}>
+              Fechar
+            </button>
+          ) : (
+            <button
+              className="btn btn-primary"
+              type="button"
+              disabled={!file || loading}
+              onClick={submitDav}
+            >
+              {loading ? 'Processando…' : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12h14m-7-7 7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Enviar DAV
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

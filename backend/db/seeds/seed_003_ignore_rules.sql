@@ -1,0 +1,19 @@
+-- Regras de ignorar para serviços/processos que aparecem no DAV
+-- mas não exigem separação física no estoque.
+-- created_by = UUID do admin padrão do sistema.
+
+INSERT INTO ignored_dav_items (raw_sku, normalized_sku, raw_description, normalized_description, match_type, reason, active, created_by) VALUES
+  ('00000000000313', '00000000000313', 'FURACAO BROCA 35MM (DOBRADICA)',          'furacao broca 35mm (dobradica)',          'SKU_AND_DESCRIPTION', 'Serviço de furação — executado internamente, não exige separação de estoque', true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000000312', '00000000000312', 'FURACAO BROCA 20MM (VB)',                 'furacao broca 20mm (vb)',                 'SKU_AND_DESCRIPTION', 'Serviço de furação — executado internamente, não exige separação de estoque', true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000000308', '00000000000308', 'FURACAO BROCA 3MM (PARAFUSO)',            'furacao broca 3mm (parafuso)',            'SKU_AND_DESCRIPTION', 'Serviço de furação — executado internamente, não exige separação de estoque', true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000000307', '00000000000307', 'FURACAO BROCA 8MM (CAVILHA OU CANAL MINIFIX)', 'furacao broca 8mm (cavilha ou canal minifix)', 'SKU_AND_DESCRIPTION', 'Serviço de furação — executado internamente, não exige separação de estoque', true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000002202', '00000000002202', 'FURACAO BROCA 1MM (PARAFUSO)',            'furacao broca 1mm (parafuso)',            'SKU_AND_DESCRIPTION', 'Serviço de furação — executado internamente, não exige separação de estoque', true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000000311', '00000000000311', 'FURACAO BROCA 15MM (MINIFIX)',            'furacao broca 15mm (minifix)',            'SKU_AND_DESCRIPTION', 'Serviço de furação — executado internamente, não exige separação de estoque', true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000000309', '00000000000309', 'FURACAO BROCA 5MM (PINO MINIF E VB)',     'furacao broca 5mm (pino minif e vb)',     'SKU_AND_DESCRIPTION', 'Serviço de furação — executado internamente, não exige separação de estoque', true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000000306', '00000000000306', 'DESLOCAMENTO DE SERRA',                   'deslocamento de serra',                  'SKU_AND_DESCRIPTION', 'Processo interno de deslocamento da serra — não gera separação no estoque',  true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000000314', '00000000000314', 'RASGO CANAL GOIVETE 6.7MM',              'rasgo canal goivete 6.7mm',              'SKU_AND_DESCRIPTION', 'Serviço de usinagem (rasgo) — executado na fábrica, sem saída de estoque',   true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000000318', '00000000000318', 'REBAIXO 6.7MM',                           'rebaixo 6.7mm',                          'SKU_AND_DESCRIPTION', 'Serviço de usinagem (rebaixo) — executado na fábrica, sem saída de estoque', true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000000748', '00000000000748', 'USINAGEM ESPECIAL',                       'usinagem especial',                      'SKU_AND_DESCRIPTION', 'Serviço de usinagem especial — sem produto físico no estoque',               true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000001057', '00000000001057', 'INSTALACAO PUX PERFIL',                   'instalacao pux perfil',                  'SKU_AND_DESCRIPTION', 'Serviço de instalação — não exige separação de produto no estoque',          true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a'),
+  ('00000000003136', '00000000003136', 'CORTE 45G PUX PERFIL',                   'corte 45g pux perfil',                   'SKU_AND_DESCRIPTION', 'Serviço de corte a 45° — executado na fábrica, sem saída de estoque',        true,  '4681ae42-0304-42f4-bc17-6d7fa679c52a')
+ON CONFLICT DO NOTHING;

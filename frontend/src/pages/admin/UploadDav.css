@@ -479,3 +479,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+.upload-dav-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--on-surface-variant);
+  font-size: 14px;
+}

@@ -1,54 +1,23 @@
-// Página ADMIN para upload visual de DAV.
-// Nesta etapa, o processamento é simulado até existir endpoint real no backend.
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { importDav, listOrders } from '../../services/orderService.js';
 import './UploadDav.css';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
-// Dados temporários usados apenas para montar a tela.
-// Quando a API de upload DAV estiver pronta, substituir por chamada real ao backend.
-const RECENT_DAVS = [
-  {
-    dav: '0000000113110',
-    cliente: 'Projete Planejados',
-    enviadoEm: 'Hoje 09:42',
-    status: 'Aguardando revisão',
-    statusClass: 'aguardando-revisao',
-    itens: 16,
-    pendencias: '3 sem vínculo',
-    acao: 'Revisar',
-  },
-  {
-    dav: '0000000113108',
-    cliente: 'Marcenaria Lopes',
-    enviadoEm: 'Hoje 08:15',
-    status: 'Em separação',
-    statusClass: 'em-separacao',
-    itens: 22,
-    pendencias: '0',
-    acao: 'Acompanhar',
-  },
-  {
-    dav: '0000000113105',
-    cliente: 'Móveis Sob Medida ME',
-    enviadoEm: 'Ontem',
-    status: 'Observação',
-    statusClass: 'observacao',
-    itens: 9,
-    pendencias: '1 item ausente',
-    acao: 'Resolver',
-  },
-  {
-    dav: '0000000113101',
-    cliente: 'Casa & Cia Decorações',
-    enviadoEm: '11/05/2026',
-    status: 'Concluído',
-    statusClass: 'concluido',
-    itens: 31,
-    pendencias: '0',
-    acao: 'Ver',
-  },
-];
+const STATUS_LABEL = {
+  PENDING:     { label: 'Aguardando revisão', cls: 'aguardando-revisao' },
+  IN_PROGRESS: { label: 'Em separação',       cls: 'em-separacao' },
+  COMPLETED:   { label: 'Concluído',          cls: 'concluido' },
+  CANCELLED:   { label: 'Cancelado',          cls: 'observacao' },
+};
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
 
 const FLOW_STEPS = [
   'Upload do PDF',
@@ -87,12 +56,23 @@ export default function UploadDav() {
   const fileInputRef = useRef(null);
   const recentDavsRef = useRef(null);
 
-  // Estado do arquivo selecionado pelo botão ou pelo drag-and-drop.
   const [selectedFile, setSelectedFile] = useState(null);
-
-  // Estado de drag ativo para destacar visualmente a área de upload.
   const [isDragActive, setIsDragActive] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+
+  useEffect(() => {
+    listOrders()
+      .then(setOrders)
+      .catch(() => {})
+      .finally(() => setOrdersLoading(false));
+  }, []);
+
+  function reloadOrders() {
+    listOrders().then(setOrders).catch(() => {});
+  }
 
   function showFeedback(type, message) {
     setFeedback({ type, message });
@@ -168,13 +148,24 @@ export default function UploadDav() {
     validateAndSetFile(event.dataTransfer.files);
   }
 
-  // Simulação temporária do processamento; integrar com a chamada real quando o endpoint existir.
-  function handleProcessDav() {
-    if (!selectedFile) return;
-    showFeedback(
-      'success',
-      'PDF selecionado com sucesso. A integração com o processamento real será feita na próxima etapa.',
-    );
+  async function handleProcessDav() {
+    if (!selectedFile || uploading) return;
+    setUploading(true);
+    setFeedback(null);
+    try {
+      const data = await importDav(selectedFile);
+      showFeedback(
+        'success',
+        `DAV ${data.orderNumber} importado — ${data.counts.found} vinculados, ${data.counts.unlinked} sem vínculo, ${data.counts.ignored} ignorados.`,
+      );
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      reloadOrders();
+    } catch (err) {
+      showFeedback('error', err.message || 'Erro ao processar DAV');
+    } finally {
+      setUploading(false);
+    }
   }
 
   function scrollToRecentDavs() {
@@ -249,11 +240,11 @@ export default function UploadDav() {
               </div>
               <span className="upload-dav-ready-badge">Pronto para processar</span>
               <div className="upload-dav-file-actions">
-                <button className="btn btn-secondary btn-sm" type="button" onClick={handleRemoveFile}>
+                <button className="btn btn-secondary btn-sm" type="button" onClick={handleRemoveFile} disabled={uploading}>
                   Remover
                 </button>
-                <button className="btn btn-primary btn-sm" type="button" onClick={handleProcessDav}>
-                  Processar DAV
+                <button className="btn btn-primary btn-sm" type="button" onClick={handleProcessDav} disabled={uploading}>
+                  {uploading ? 'Processando…' : 'Processar DAV'}
                 </button>
               </div>
             </div>
@@ -293,81 +284,79 @@ export default function UploadDav() {
           </div>
         </div>
 
-        <table className="upload-dav-table">
-          <thead>
-            <tr>
-              <th>DAV</th>
-              <th>Cliente</th>
-              <th>Enviado em</th>
-              <th>Status</th>
-              <th>Itens</th>
-              <th>Pendências</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody>
-            {RECENT_DAVS.map((dav) => (
-              <tr key={dav.dav}>
-                <td><span className="dav-id">{dav.dav}</span></td>
-                <td><span className="client-name">{dav.cliente}</span></td>
-                <td><span className="upload-dav-date">{dav.enviadoEm}</span></td>
-                <td>
-                  <span className={`upload-dav-status ${dav.statusClass}`}>
-                    {dav.status}
-                  </span>
-                </td>
-                <td>
-                  <span className="counts">
-                    <span className="num">{dav.itens}</span> itens
-                  </span>
-                </td>
-                <td>
-                  <span className={`pending-pill${dav.pendencias === '0' ? ' zero' : ''}`}>
-                    {dav.pendencias}
-                  </span>
-                </td>
-                <td>
-                  <button className="upload-dav-action" type="button">
-                    {dav.acao}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {ordersLoading ? (
+          <div className="upload-dav-empty">Carregando…</div>
+        ) : orders.length === 0 ? (
+          <div className="upload-dav-empty">Nenhum DAV importado ainda.</div>
+        ) : (
+          <>
+            <table className="upload-dav-table">
+              <thead>
+                <tr>
+                  <th>DAV</th>
+                  <th>Cliente</th>
+                  <th>Enviado em</th>
+                  <th>Status</th>
+                  <th>Itens</th>
+                  <th>Sem vínculo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => {
+                  const st = STATUS_LABEL[order.status] ?? { label: order.status, cls: '' };
+                  const unlinked = order.totalItems - (order.pickedItems + order.missingItems + order.partialItems);
+                  return (
+                    <tr key={order.id}>
+                      <td><span className="dav-id">{order.orderNumber}</span></td>
+                      <td><span className="client-name">{order.customerName}</span></td>
+                      <td><span className="upload-dav-date">{formatDate(order.createdAt)}</span></td>
+                      <td>
+                        <span className={`upload-dav-status ${st.cls}`}>{st.label}</span>
+                      </td>
+                      <td>
+                        <span className="counts">
+                          <span className="num">{order.totalItems}</span> itens
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`pending-pill${unlinked === 0 ? ' zero' : ''}`}>
+                          {unlinked > 0 ? `${unlinked} sem vínculo` : '0'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
 
-        <div className="upload-dav-mobile-list">
-          {RECENT_DAVS.map((dav) => (
-            <article className="upload-dav-mobile-card" key={dav.dav}>
-              <div className="upload-dav-mobile-head">
-                <div>
-                  <span className="dav-id">{dav.dav}</span>
-                  <strong>{dav.cliente}</strong>
-                </div>
-                <span className={`upload-dav-status ${dav.statusClass}`}>
-                  {dav.status}
-                </span>
-              </div>
-              <div className="upload-dav-mobile-grid">
-                <div>
-                  <span>Enviado em</span>
-                  <strong>{dav.enviadoEm}</strong>
-                </div>
-                <div>
-                  <span>Itens</span>
-                  <strong>{dav.itens}</strong>
-                </div>
-                <div>
-                  <span>Pendências</span>
-                  <strong>{dav.pendencias}</strong>
-                </div>
-              </div>
-              <button className="btn btn-primary btn-sm" type="button">
-                {dav.acao}
-              </button>
-            </article>
-          ))}
-        </div>
+            <div className="upload-dav-mobile-list">
+              {orders.map((order) => {
+                const st = STATUS_LABEL[order.status] ?? { label: order.status, cls: '' };
+                return (
+                  <article className="upload-dav-mobile-card" key={order.id}>
+                    <div className="upload-dav-mobile-head">
+                      <div>
+                        <span className="dav-id">{order.orderNumber}</span>
+                        <strong>{order.customerName}</strong>
+                      </div>
+                      <span className={`upload-dav-status ${st.cls}`}>{st.label}</span>
+                    </div>
+                    <div className="upload-dav-mobile-grid">
+                      <div>
+                        <span>Enviado em</span>
+                        <strong>{formatDate(order.createdAt)}</strong>
+                      </div>
+                      <div>
+                        <span>Itens</span>
+                        <strong>{order.totalItems}</strong>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
       </section>
     </div>
   );

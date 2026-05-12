@@ -1,8 +1,10 @@
 // Página ADMIN de Configurações.
-// Centraliza preferências visuais e parâmetros operacionais mockados.
+// Centraliza preferências visuais e parâmetros operacionais.
 import { useState } from 'react';
 import './AdminSettings.css';
 
+// Dado temporário usado apenas enquanto a API real não está pronta.
+// O backend ainda não possui endpoint de configurações/status operacional.
 const SYSTEM_STATUS = [
   ['API', 'Online'], ['Banco', 'Conectado'], ['Frontend', 'Online'],
   ['Último deploy', 'Hoje'], ['Ambiente', 'Teste'], ['Última sincronização', 'Agora'],

@@ -5,8 +5,11 @@ validateEnv();
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import authRoutes    from './routes/authRoutes.js';
-import productRoutes from './routes/productRoutes.js';
+import authRoutes            from './routes/authRoutes.js';
+import productRoutes         from './routes/productRoutes.js';
+import ignoredDavItemsRoutes from './routes/ignoredDavItemsRoutes.js';
+import orderRoutes           from './routes/orderRoutes.js';
+import dashboardRoutes       from './routes/dashboardRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
@@ -20,6 +23,12 @@ function normalizeOrigin(origin) {
 
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+  'http://localhost:5178',
+  'http://localhost:5179',
   process.env.FRONTEND_URL,
   ...(process.env.FRONTEND_URLS
     ? process.env.FRONTEND_URLS.split(',')
@@ -40,7 +49,14 @@ app.use(cors({
     }
 
     const normalizedOrigin = normalizeOrigin(origin);
-    if (allowedOrigins.includes(normalizedOrigin) || vercelPreviewPattern.test(normalizedOrigin)) {
+    const isLocalViteOrigin = process.env.NODE_ENV !== 'production'
+      && normalizedOrigin?.startsWith('http://localhost:517');
+
+    if (
+      allowedOrigins.includes(normalizedOrigin)
+      || vercelPreviewPattern.test(normalizedOrigin)
+      || isLocalViteOrigin
+    ) {
       return callback(null, true);
     }
 
@@ -57,8 +73,11 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', message: 'API StockRoute funcionando' });
 });
 
-app.use('/auth',     authRoutes);
-app.use('/products', productRoutes);
+app.use('/auth',               authRoutes);
+app.use('/products',           productRoutes);
+app.use('/ignored-dav-items',  ignoredDavItemsRoutes);
+app.use('/orders',             orderRoutes);
+app.use('/dashboard',          dashboardRoutes);
 
 // 404 para rotas inexistentes
 app.use((_req, res) => {

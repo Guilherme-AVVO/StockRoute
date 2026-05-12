@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import './AdminHeader.css';
 
+// Dado temporário usado apenas enquanto a API real não está pronta.
 // Notificações mockadas apenas para simular a interação visual.
 // Futuramente serão substituídas por dados reais do backend.
 const MOCK_NOTIFICATIONS = [
