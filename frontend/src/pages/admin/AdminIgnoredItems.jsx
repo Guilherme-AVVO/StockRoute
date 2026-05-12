@@ -1,7 +1,7 @@
 // Página ADMIN — Itens ignorados no picking.
 // Centraliza: itens ocultos manualmente (API real), regras de ocultação por padrão
-// de nome/SKU (MOCK — backend ainda não suporta) e itens não vinculados vindos
-// do DAV (MOCK — não persistidos no banco hoje).
+// de nome/SKU (MOCK — backend ainda não suporta padrão) e itens não vinculados
+// vindos do DAV (API real, tabela unlinked_dav_items).
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatCard from '../../components/admin/StatCard.jsx';
 import {
@@ -9,6 +9,13 @@ import {
   createIgnoredDavItem,
   deactivateIgnoredDavItem,
 } from '../../services/ignoredDavItemsService.js';
+import {
+  listUnlinkedDavItems,
+  linkUnlinkedItemToProduct,
+  createProductFromUnlinkedItem,
+  hideUnlinkedItem,
+} from '../../services/unlinkedDavItemsService.js';
+import { listProducts } from '../../services/productService.js';
 import './AdminIgnoredItems.css';
 
 // ============================================================
@@ -69,31 +76,7 @@ const INITIAL_RULES = [
   },
 ];
 
-// MOCK: itens não vinculados de DAVs já importados.
-// Hoje o backend só persiste itens com produto cadastrado (order_items.product_id NOT NULL).
-// Para virar real precisa de nova tabela `unlinked_dav_items` ou tornar product_id nulo.
-const INITIAL_UNLINKED = [
-  {
-    id:             'u1',
-    davNumber:      '113364',
-    customerName:   'REVITALIZE PLANEJADOS',
-    rawSku:         '00000000000368',
-    rawDescription: 'CANTONEIRA CAPA BRANCA REFORCADA + BUCHAS + PARAFUSOS (C/10 UND)',
-    quantity:       1,
-    unit:           'KT',
-    createdAt:      '2026-05-12T10:30:00Z',
-  },
-  {
-    id:             'u2',
-    davNumber:      '113347',
-    customerName:   'DREAMS HOME MOVEIS E DECORACOES LTDA',
-    rawSku:         '00000000000368',
-    rawDescription: 'CANTONEIRA CAPA BRANCA REFORCADA + BUCHAS + PARAFUSOS (C/10 UND)',
-    quantity:       2,
-    unit:           'KT',
-    createdAt:      '2026-05-12T10:35:00Z',
-  },
-];
+// Itens não vinculados agora vêm de /unlinked-dav-items — sem mock.
 
 const EMPTY_HIDE_FORM = { rawSku: '', rawDescription: '', reason: '' };
 const EMPTY_RULE_FORM = { type: 'NAME_CONTAINS', value: '', reason: '' };
@@ -344,7 +327,9 @@ function RulesList({ rules, onView, onToggle }) {
 // Lista da aba "Não vinculados" — MOCK local
 // ============================================================
 
-function UnlinkedList({ items, onLink, onRegister, onHide, onCreateRule }) {
+function UnlinkedList({ loading, items, onLink, onRegister, onHide, onCreateRule }) {
+  if (loading) return <div className="ignored-empty"><p>Carregando itens não vinculados…</p></div>;
+
   if (items.length === 0) {
     return (
       <div className="ignored-empty">
@@ -444,8 +429,20 @@ export default function AdminIgnoredItems() {
   // Aba "Regras de ocultação" — MOCK local
   const [hideRules, setHideRules] = useState(INITIAL_RULES);
 
-  // Aba "Não vinculados" — MOCK local
-  const [unlinkedItems, setUnlinkedItems] = useState(INITIAL_UNLINKED);
+  // Aba "Não vinculados" — API real (/unlinked-dav-items)
+  const [unlinkedItems, setUnlinkedItems] = useState([]);
+  const [loadingUnlinked, setLoadingUnlinked] = useState(true);
+
+  // Catálogo carregado sob demanda para o modal de "Vincular"
+  const [catalogProducts, setCatalogProducts] = useState([]);
+  const [productSearch,   setProductSearch]   = useState('');
+  const [selectedProductId, setSelectedProductId] = useState('');
+
+  // Formulário de cadastro rápido a partir de item não vinculado
+  const [registerForm, setRegisterForm] = useState({ sku: '', name: '', unit: 'UN', imageUrl: '' });
+
+  // Formulário de motivo para ocultar item não vinculado
+  const [hideUnlinkedReason, setHideUnlinkedReason] = useState('');
 
   // Estado compartilhado de busca/modal/feedback
   const [search,   setSearch]   = useState('');
@@ -467,7 +464,16 @@ export default function AdminIgnoredItems() {
       .finally(() => setLoadingRules(false));
   }, []);
 
-  useEffect(() => { reloadHidden(); }, [reloadHidden]);
+  // Recarrega itens não vinculados (status=PENDING) da API real
+  const reloadUnlinked = useCallback(() => {
+    setLoadingUnlinked(true);
+    listUnlinkedDavItems()
+      .then(setUnlinkedItems)
+      .catch((err) => setFeedback(err.message))
+      .finally(() => setLoadingUnlinked(false));
+  }, []);
+
+  useEffect(() => { reloadHidden(); reloadUnlinked(); }, [reloadHidden, reloadUnlinked]);
 
   // Limpa busca ao trocar de aba
   useEffect(() => { setSearch(''); }, [tab]);
@@ -529,8 +535,7 @@ export default function AdminIgnoredItems() {
     setModal({ type: 'rule' });
   }
   function openRuleViewModal(rule)  { setModal({ type: 'rule-view', rule }); }
-  function openLinkModal(item)      { setModal({ type: 'link',     item }); }
-  function openRegisterModal(item)  { setModal({ type: 'register', item }); }
+  // Handlers reais de "link" e "register" estão em openLinkModalReal / openRegisterModalReal abaixo.
 
   function closeModal() {
     setModal(null);
@@ -602,17 +607,96 @@ export default function AdminIgnoredItems() {
     setFeedback('Status da regra alternado localmente. (Mock — sem persistência.)');
   }
 
-  // Aba "Não vinculados" — MOCK
-  function linkUnlinkedMock(item) {
-    setUnlinkedItems((prev) => prev.filter((u) => u.id !== item.id));
-    setFeedback(`Vínculo simulado para "${item.rawDescription}". (Mock — endpoint não existe.)`);
-    closeModal();
+  // Aba "Não vinculados" — chamadas reais à API
+
+  // Vincula item a produto já existente no catálogo.
+  async function confirmLinkUnlinked(item) {
+    if (!selectedProductId) {
+      setFormError('Selecione um produto do catálogo.');
+      return;
+    }
+    setFormLoading(true);
+    setFormError(null);
+    try {
+      await linkUnlinkedItemToProduct(item.id, selectedProductId);
+      setFeedback(`Item "${item.rawDescription}" vinculado com sucesso.`);
+      closeModal();
+      reloadUnlinked();
+    } catch (err) {
+      setFormError(err.message || 'Erro ao vincular item');
+    } finally {
+      setFormLoading(false);
+    }
   }
 
-  function registerUnlinkedMock(item) {
-    setUnlinkedItems((prev) => prev.filter((u) => u.id !== item.id));
-    setFeedback(`Cadastro rápido simulado para SKU ${item.rawSku}. (Mock — endpoint não existe.)`);
-    closeModal();
+  // Cria produto novo no catálogo a partir do item DAV.
+  async function confirmRegisterUnlinked(item) {
+    setFormError(null);
+    const { sku, name, unit, imageUrl } = registerForm;
+    if (!sku.trim() || !name.trim() || !unit.trim()) {
+      setFormError('SKU, nome e unidade são obrigatórios.');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      await createProductFromUnlinkedItem(item.id, { sku, name, unit, imageUrl: imageUrl || null });
+      setFeedback(`Produto "${name}" cadastrado e item resolvido.`);
+      closeModal();
+      reloadUnlinked();
+    } catch (err) {
+      setFormError(err.message || 'Erro ao cadastrar produto');
+    } finally {
+      setFormLoading(false);
+    }
+  }
+
+  // Oculta item não vinculado — cria regra em ignored_dav_items.
+  async function confirmHideUnlinked(item) {
+    setFormError(null);
+    if (!hideUnlinkedReason.trim()) {
+      setFormError('Informe o motivo da ocultação.');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      await hideUnlinkedItem(item.id, hideUnlinkedReason);
+      setFeedback(`Item "${item.rawDescription}" ocultado e regra criada.`);
+      closeModal();
+      reloadUnlinked();
+      reloadHidden();
+    } catch (err) {
+      setFormError(err.message || 'Erro ao ocultar item');
+    } finally {
+      setFormLoading(false);
+    }
+  }
+
+  // Abre modal de "Vincular" carregando catálogo
+  function openLinkModalReal(item) {
+    setSelectedProductId('');
+    setProductSearch('');
+    setFormError(null);
+    listProducts('').then(setCatalogProducts).catch(() => setCatalogProducts([]));
+    setModal({ type: 'link', item });
+  }
+
+  // Abre modal "Cadastrar" pré-preenchendo com dados do DAV
+  function openRegisterModalReal(item) {
+    setRegisterForm({
+      sku:      item.rawSku ?? '',
+      name:     item.rawDescription ?? '',
+      unit:     ['UN','CX','SC','PC','CT','PR','M'].includes(item.unit) ? item.unit : 'UN',
+      imageUrl: '',
+    });
+    setFormError(null);
+    setModal({ type: 'register', item });
+  }
+
+  // Abre modal "Ocultar" do item não vinculado (vai pra ignored_dav_items)
+  function openHideUnlinkedModal(item) {
+    setHideUnlinkedReason('');
+    setFormError(null);
+    setModal({ type: 'hide-unlinked', item });
   }
 
   return (
@@ -741,10 +825,11 @@ export default function AdminIgnoredItems() {
 
         {tab === 'unlinked' && (
           <UnlinkedList
+            loading={loadingUnlinked}
             items={filteredUnlinked}
-            onLink={openLinkModal}
-            onRegister={openRegisterModal}
-            onHide={(item) => openHideModal({ rawSku: item.rawSku, rawDescription: item.rawDescription })}
+            onLink={openLinkModalReal}
+            onRegister={openRegisterModalReal}
+            onHide={openHideUnlinkedModal}
             onCreateRule={(item) => openRuleModal({
               type: 'DESCRIPTION_CONTAINS',
               value: item.rawDescription.split(' ').slice(0, 2).join(' '),
@@ -919,25 +1004,51 @@ export default function AdminIgnoredItems() {
               subtitle={`${modal.item.rawSku} · ${modal.item.rawDescription}`}
               onClose={closeModal}>
               <div className="ignored-modal-body">
-                <p style={{ color: 'var(--on-surface-variant)', fontSize: 13, marginBottom: 12 }}>
-                  Selecione um produto do catálogo para vincular a este item. (Mock — busca real ainda não implementada.)
-                </p>
-                <div className="ignored-confirm-box">
+                <div className="ignored-confirm-box" style={{ marginBottom: 12 }}>
                   <strong>Origem do item</strong>
-                  <p>DAV {modal.item.davNumber} · {modal.item.customerName}</p>
+                  <p>DAV {modal.item.davNumber} · {modal.item.customerName} · Qtd. {modal.item.quantity} {modal.item.unit ?? ''}</p>
                 </div>
-                <div className="ignored-mock-warning">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                    <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                  Vínculo mockado: backend não persiste itens não vinculados hoje.
+                <label style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: 'var(--outline-strong)' }}>
+                  Buscar produto no catálogo
+                </label>
+                <input type="search" value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="Filtrar por SKU ou nome…"
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--outline)', fontSize: 14, marginBottom: 12 }} />
+                <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--surface-variant)', borderRadius: 8 }}>
+                  {catalogProducts
+                    .filter((p) => {
+                      const q = productSearch.trim().toLowerCase();
+                      return !q || p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
+                    })
+                    .slice(0, 30)
+                    .map((p) => (
+                      <label key={p.id}
+                        style={{
+                          display: 'flex', gap: 10, padding: '10px 12px',
+                          borderBottom: '1px solid var(--surface-variant)',
+                          background: selectedProductId === p.id ? 'var(--primary-fixed)' : 'transparent',
+                          cursor: 'pointer', fontSize: 13,
+                        }}>
+                        <input type="radio" name="catalogProduct" checked={selectedProductId === p.id}
+                          onChange={() => setSelectedProductId(p.id)} />
+                        <span className="ignored-code-ref">{p.sku}</span>
+                        <span style={{ flex: 1 }}>{p.name}</span>
+                        <span className="ignored-muted">{p.unit}</span>
+                      </label>
+                    ))}
+                  {catalogProducts.length === 0 && (
+                    <div className="ignored-muted" style={{ padding: 16, textAlign: 'center' }}>Carregando catálogo…</div>
+                  )}
                 </div>
+                {formError && <div className="ignored-form-error" style={{ marginTop: 12 }}>{formError}</div>}
               </div>
               <div className="ignored-modal-foot">
                 <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
-                <button className="btn btn-primary" type="button" onClick={() => linkUnlinkedMock(modal.item)}>
-                  Simular vínculo
+                <button className="btn btn-primary" type="button"
+                  disabled={!selectedProductId || formLoading}
+                  onClick={() => confirmLinkUnlinked(modal.item)}>
+                  {formLoading ? 'Vinculando…' : 'Vincular ao produto'}
                 </button>
               </div>
             </ModalCard>
@@ -945,29 +1056,74 @@ export default function AdminIgnoredItems() {
 
           {modal.type === 'register' && (
             <ModalCard title="Cadastrar novo produto"
-              subtitle="Os dados do DAV são pré-preenchidos. (Mock — sem chamada real.)"
+              subtitle="Os dados do DAV são pré-preenchidos. Ajuste se necessário antes de salvar."
               onClose={closeModal}>
-              <div className="ignored-modal-body">
-                <div className="ignored-rule-grid">
-                  <span>Código/Ref.</span><strong><span className="ignored-code-ref">{modal.item.rawSku}</span></strong>
-                  <span>Descrição</span><strong>{modal.item.rawDescription}</strong>
-                  <span>Unidade</span><strong>{modal.item.unit}</strong>
-                  <span>Quantidade no DAV</span><strong>{modal.item.quantity}</strong>
+              <form className="ignored-form" onSubmit={(e) => { e.preventDefault(); confirmRegisterUnlinked(modal.item); }}>
+                <div className="ignored-form-grid">
+                  <label>
+                    <span>SKU / Código *</span>
+                    <input value={registerForm.sku}
+                      onChange={(e) => setRegisterForm({ ...registerForm, sku: e.target.value })}
+                      required />
+                  </label>
+                  <label>
+                    <span>Unidade *</span>
+                    <select value={registerForm.unit}
+                      onChange={(e) => setRegisterForm({ ...registerForm, unit: e.target.value })}>
+                      {['UN','CX','SC','PC','CT','PR','M'].map((u) => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </label>
+                  <label className="ignored-form-wide">
+                    <span>Nome *</span>
+                    <input value={registerForm.name}
+                      onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                      maxLength={150} required />
+                  </label>
+                  <label className="ignored-form-wide">
+                    <span>URL da imagem (opcional)</span>
+                    <input type="url" value={registerForm.imageUrl}
+                      onChange={(e) => setRegisterForm({ ...registerForm, imageUrl: e.target.value })}
+                      placeholder="https://…" />
+                  </label>
                 </div>
-                <div className="ignored-mock-warning" style={{ marginTop: 12 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                    <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                  Para cadastrar de fato, use a tela de Produtos. (Cadastro rápido será real quando o endpoint estiver pronto.)
+                <div className="ignored-confirm-box" style={{ marginTop: 12 }}>
+                  <strong>Origem do item</strong>
+                  <p>DAV {modal.item.davNumber} · {modal.item.customerName} · Qtd. {modal.item.quantity} {modal.item.unit ?? ''}</p>
                 </div>
-              </div>
-              <div className="ignored-modal-foot">
-                <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
-                <button className="btn btn-primary" type="button" onClick={() => registerUnlinkedMock(modal.item)}>
-                  Simular cadastro
-                </button>
-              </div>
+                {formError && <div className="ignored-form-error">{formError}</div>}
+                <div className="ignored-modal-foot" style={{ marginTop: 16 }}>
+                  <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
+                  <button className="btn btn-primary" type="submit" disabled={formLoading}>
+                    {formLoading ? 'Cadastrando…' : 'Cadastrar produto'}
+                  </button>
+                </div>
+              </form>
+            </ModalCard>
+          )}
+
+          {modal.type === 'hide-unlinked' && (
+            <ModalCard title="Ocultar item no picking"
+              subtitle={`${modal.item.rawSku ?? '—'} · ${modal.item.rawDescription}`}
+              onClose={closeModal}>
+              <form className="ignored-form" onSubmit={(e) => { e.preventDefault(); confirmHideUnlinked(modal.item); }}>
+                <div className="ignored-confirm-box" style={{ marginBottom: 12 }}>
+                  <strong>{modal.item.rawDescription}</strong>
+                  <p>Origem: DAV {modal.item.davNumber} · {modal.item.customerName}</p>
+                </div>
+                <label className="ignored-form-wide">
+                  <span>Motivo da ocultação *</span>
+                  <textarea rows="3" value={hideUnlinkedReason}
+                    onChange={(e) => setHideUnlinkedReason(e.target.value)}
+                    placeholder="Ex: Serviço da fábrica, não exige separação física" />
+                </label>
+                {formError && <div className="ignored-form-error">{formError}</div>}
+                <div className="ignored-modal-foot" style={{ marginTop: 16 }}>
+                  <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
+                  <button className="btn btn-primary" type="submit" disabled={formLoading}>
+                    {formLoading ? 'Ocultando…' : 'Ocultar e criar regra'}
+                  </button>
+                </div>
+              </form>
             </ModalCard>
           )}
         </ModalOverlay>

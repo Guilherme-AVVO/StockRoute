@@ -12,6 +12,7 @@ import {
   updateOrderStatus,
   createOrderItem,
 } from '../../db/queries/orders.js';
+import { createUnlinkedDavItem } from '../../db/queries/unlinkedDavItems.js';
 import { normalizeSku } from '../utils/normalizeDavItem.js';
 
 // Tries exact SKU match then falls back to stripped leading zeros.
@@ -87,11 +88,22 @@ export async function importDav(fileBuffer) {
     const product = await findProductForSku(item.rawSku);
 
     if (!product) {
-      counts.unlinked++;
-      unlinkedItems.push({
+      // Persistimos em unlinked_dav_items para que o ADMIN consiga resolver depois.
+      // Sem isso, o item desaparece após a resposta do import.
+      const saved = await createUnlinkedDavItem({
+        orderId:        order.id,
         rawSku:         item.rawSku,
         rawDescription: item.rawDescription,
         quantity:       item.quantity,
+        unit:           item.unit,
+      });
+      counts.unlinked++;
+      unlinkedItems.push({
+        id:             saved.id,
+        rawSku:         item.rawSku,
+        rawDescription: item.rawDescription,
+        quantity:       item.quantity,
+        unit:           item.unit,
       });
       continue;
     }

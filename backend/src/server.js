@@ -10,6 +10,7 @@ import productRoutes         from './routes/productRoutes.js';
 import ignoredDavItemsRoutes from './routes/ignoredDavItemsRoutes.js';
 import orderRoutes           from './routes/orderRoutes.js';
 import dashboardRoutes       from './routes/dashboardRoutes.js';
+import unlinkedDavItemsRoutes from './routes/unlinkedDavItemsRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
@@ -78,6 +79,7 @@ app.use('/products',           productRoutes);
 app.use('/ignored-dav-items',  ignoredDavItemsRoutes);
 app.use('/orders',             orderRoutes);
 app.use('/dashboard',          dashboardRoutes);
+app.use('/unlinked-dav-items', unlinkedDavItemsRoutes);
 
 // 404 para rotas inexistentes
 app.use((_req, res) => {
