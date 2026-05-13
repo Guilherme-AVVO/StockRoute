@@ -36,7 +36,8 @@ export async function listOrdersController(req, res, next) {
 
 export async function getOrderController(req, res, next) {
   try {
-    const order = await getOrder(req.params.id);
+    const includeHidden = req.query.includeHidden === 'true';
+    const order = await getOrder(req.params.id, { includeHidden });
     if (!order) return res.status(404).json({ message: 'Pedido não encontrado' });
     return res.json(order);
   } catch (err) {

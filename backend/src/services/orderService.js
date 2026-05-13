@@ -13,7 +13,7 @@ import {
   updateOrderStatus,
   createOrderItem,
 } from '../../db/queries/orders.js';
-import { createUnlinkedDavItem } from '../../db/queries/unlinkedDavItems.js';
+import { createUnlinkedDavItem, listHiddenDavItemsByOrder } from '../../db/queries/unlinkedDavItems.js';
 import { normalizeSku } from '../utils/normalizeDavItem.js';
 
 // Tries exact SKU match then falls back to stripped leading zeros.
@@ -92,13 +92,34 @@ export async function importDav(fileBuffer) {
   const counts = { found: 0, unlinked: 0, ignored: 0 };
   const unlinkedItems = [];
 
+  // Roteamento do item DAV (ordem importa):
+  //   1) Regra de ocultação ativa? → unlinked_dav_items status=HIDDEN
+  //      (NÃO vai para order_items mesmo se houver produto cadastrado)
+  //   2) Produto cadastrado encontrado? → order_items (vai para revisão/picking)
+  //   3) Sem regra nem produto? → unlinked_dav_items status=PENDING
   for (const item of items) {
-    const { ignored } = await shouldIgnoreDavItem({
-      rawSku:         item.rawSku,
-      rawDescription: item.rawDescription,
+    const ruling = await shouldIgnoreDavItem({
+      rawSku:                item.rawSku,
+      rawDescription:        item.rawDescription,
+      manufacturerReference: item.manufacturerReference,
+      manufacturerName:      item.manufacturerName,
     });
 
-    if (ignored) {
+    if (ruling.ignored) {
+      // Persiste como HIDDEN para auditoria e para o toggle "Mostrar itens ocultos"
+      // conseguir exibir esses itens junto da revisão.
+      await createUnlinkedDavItem({
+        orderId:               order.id,
+        rawSku:                item.rawSku,
+        rawDescription:        item.rawDescription,
+        quantity:              item.quantity,
+        unit:                  item.unit,
+        manufacturerReference: item.manufacturerReference,
+        manufacturerName:      item.manufacturerName,
+        status:                'HIDDEN',
+        ignoredRuleId:         ruling.ruleId,
+        resolutionNote:        ruling.reason,
+      });
       counts.ignored++;
       continue;
     }
@@ -106,8 +127,6 @@ export async function importDav(fileBuffer) {
     const product = await findProductForDavItem(item);
 
     if (!product) {
-      // Persistimos em unlinked_dav_items para que o ADMIN consiga resolver depois.
-      // Sem isso, o item desaparece após a resposta do import.
       const saved = await createUnlinkedDavItem({
         orderId:               order.id,
         rawSku:                item.rawSku,
@@ -152,16 +171,36 @@ export async function getOrders(filters) {
   return rows.map(toOrderDto);
 }
 
-export async function getOrder(id) {
-  const [order, items] = await Promise.all([
+// Converte uma linha de unlinked_dav_items (HIDDEN) para o formato exibido na Revisão.
+function toHiddenItemDto(row) {
+  return {
+    id:                    row.id,
+    quantity:              row.quantity,
+    unit:                  row.unit,
+    rawSku:                row.raw_sku,
+    rawDescription:        row.raw_description,
+    manufacturerReference: row.manufacturer_reference ?? null,
+    manufacturerName:      row.manufacturer_name ?? null,
+    status:                'HIDDEN',
+    ignoredRuleId:         row.ignored_rule_id ?? null,
+    ignoredReason:         row.resolution_note ?? row.rule_reason ?? null,
+    ruleMatchType:         row.rule_match_type ?? null,
+    createdAt:             row.created_at,
+  };
+}
+
+export async function getOrder(id, { includeHidden = false } = {}) {
+  const [order, items, hiddenItems] = await Promise.all([
     findOrderById(id),
     findOrderItems(id),
+    includeHidden ? listHiddenDavItemsByOrder(id) : Promise.resolve([]),
   ]);
   if (!order) return null;
 
   return {
     ...toOrderDto(order),
-    items: items.map(toItemDto),
+    items:       items.map(toItemDto),
+    hiddenItems: hiddenItems.map(toHiddenItemDto),
   };
 }
 

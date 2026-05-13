@@ -6,6 +6,7 @@ import sql from '../pool.js';
 
 // Campos retornados em conjunto com dados do pedido de origem.
 // manufacturer_reference / manufacturer_name vêm da migration 009.
+// ignored_rule_id e rule_* vêm da migration 010 (rastreio do motivo da ocultação).
 const unlinkedWithOrderFields = sql`
   u.id,
   u.order_id,
@@ -17,13 +18,16 @@ const unlinkedWithOrderFields = sql`
   u.manufacturer_name,
   u.status,
   u.product_id,
+  u.ignored_rule_id,
   u.resolution_note,
   u.resolved_at,
   u.resolved_by,
   u.created_at,
   u.updated_at,
   o.order_number  AS dav_number,
-  o.customer_name AS customer_name
+  o.customer_name AS customer_name,
+  r.match_type    AS rule_match_type,
+  r.reason        AS rule_reason
 `;
 
 // Lista itens não vinculados — por padrão, somente PENDING.
@@ -34,6 +38,7 @@ export async function listUnlinkedDavItems({ status = 'PENDING' } = {}) {
       SELECT ${unlinkedWithOrderFields}
       FROM unlinked_dav_items u
       JOIN orders o ON o.id = u.order_id
+      LEFT JOIN ignored_dav_items r ON r.id = u.ignored_rule_id
       ORDER BY u.created_at DESC
     `;
   }
@@ -41,8 +46,22 @@ export async function listUnlinkedDavItems({ status = 'PENDING' } = {}) {
     SELECT ${unlinkedWithOrderFields}
     FROM unlinked_dav_items u
     JOIN orders o ON o.id = u.order_id
+    LEFT JOIN ignored_dav_items r ON r.id = u.ignored_rule_id
     WHERE u.status = ${status}
     ORDER BY u.created_at DESC
+  `;
+}
+
+// Lista itens ocultos (status=HIDDEN) de um pedido específico.
+// Usado pelo toggle "Mostrar itens ocultos" na tela de Revisão.
+export async function listHiddenDavItemsByOrder(orderId) {
+  return sql`
+    SELECT ${unlinkedWithOrderFields}
+    FROM unlinked_dav_items u
+    JOIN orders o ON o.id = u.order_id
+    LEFT JOIN ignored_dav_items r ON r.id = u.ignored_rule_id
+    WHERE u.order_id = ${orderId} AND u.status = 'HIDDEN'
+    ORDER BY u.created_at ASC
   `;
 }
 
@@ -51,31 +70,37 @@ export async function findUnlinkedDavItemById(id) {
     SELECT ${unlinkedWithOrderFields}
     FROM unlinked_dav_items u
     JOIN orders o ON o.id = u.order_id
+    LEFT JOIN ignored_dav_items r ON r.id = u.ignored_rule_id
     WHERE u.id = ${id}
     LIMIT 1
   `;
   return rows[0] ?? null;
 }
 
-// Cria registro ao importar DAV — chamado pelo orderService.importDav
-// quando o item extraído não tem produto correspondente no catálogo.
-// manufacturerReference/manufacturerName vêm da coluna "Referência/Fabricante" do PDF
-// e permitem fazer match automático quando o ADMIN cadastrar o produto depois.
+// Cria registro ao importar DAV — chamado pelo orderService.importDav.
+// Pode ser PENDING (sem produto cadastrado) ou HIDDEN (ocultado por regra).
+// Quando status='HIDDEN', ignoredRuleId rastreia qual regra aplicou.
 export async function createUnlinkedDavItem({
   orderId, rawSku, rawDescription, quantity, unit,
   manufacturerReference, manufacturerName,
+  status = 'PENDING',
+  ignoredRuleId = null,
+  resolutionNote = null,
 }) {
   const rows = await sql`
     INSERT INTO unlinked_dav_items (
       order_id, raw_sku, raw_description, quantity, unit,
-      manufacturer_reference, manufacturer_name
+      manufacturer_reference, manufacturer_name,
+      status, ignored_rule_id, resolution_note
     )
     VALUES (
       ${orderId}, ${rawSku ?? null}, ${rawDescription}, ${quantity}, ${unit ?? null},
-      ${manufacturerReference ?? null}, ${manufacturerName ?? null}
+      ${manufacturerReference ?? null}, ${manufacturerName ?? null},
+      ${status}, ${ignoredRuleId}, ${resolutionNote}
     )
     RETURNING id, order_id, raw_sku, raw_description, quantity, unit,
-              manufacturer_reference, manufacturer_name, status, created_at
+              manufacturer_reference, manufacturer_name,
+              status, ignored_rule_id, resolution_note, created_at
   `;
   return rows[0];
 }
@@ -94,7 +119,8 @@ export async function updateUnlinkedDavItemStatus(id, { status, productId = null
     WHERE id = ${id}
     RETURNING id, order_id, raw_sku, raw_description, quantity, unit,
               manufacturer_reference, manufacturer_name,
-              status, product_id, resolution_note, resolved_at, resolved_by,
+              status, product_id, ignored_rule_id,
+              resolution_note, resolved_at, resolved_by,
               created_at, updated_at
   `;
   return rows[0] ?? null;
