@@ -8,7 +8,7 @@
 -- classificar itens como ignorados no fluxo de picking.
 -- ============================================================
 
-CREATE TABLE ignored_dav_items (
+CREATE TABLE IF NOT EXISTS ignored_dav_items (
   id                     UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   raw_sku                TEXT,
   normalized_sku         TEXT,
@@ -39,19 +39,19 @@ CREATE TABLE ignored_dav_items (
 );
 
 -- Lookup por SKU normalizado durante o processamento do DAV.
-CREATE INDEX idx_ignored_dav_items_normalized_sku
+CREATE INDEX IF NOT EXISTS idx_ignored_dav_items_normalized_sku
   ON ignored_dav_items (normalized_sku);
 
 -- Fallback por descrição normalizada quando o DAV não tiver SKU confiável.
-CREATE INDEX idx_ignored_dav_items_normalized_description
+CREATE INDEX IF NOT EXISTS idx_ignored_dav_items_normalized_description
   ON ignored_dav_items (normalized_description);
 
 -- Filtro frequente: apenas regras ativas devem ser usadas pelo parser.
-CREATE INDEX idx_ignored_dav_items_active
+CREATE INDEX IF NOT EXISTS idx_ignored_dav_items_active
   ON ignored_dav_items (active);
 
 -- Auditoria das regras criadas por ADMIN.
-CREATE INDEX idx_ignored_dav_items_created_by
+CREATE INDEX IF NOT EXISTS idx_ignored_dav_items_created_by
   ON ignored_dav_items (created_by);
 
 COMMENT ON TABLE ignored_dav_items IS 'Regras para ignorar itens DAV que não exigem separação física no picking.';

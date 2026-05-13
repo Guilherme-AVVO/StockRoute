@@ -5,7 +5,7 @@
 -- registro aqui (validado no backend).
 -- ============================================================
 
-CREATE TABLE missing_items (
+CREATE TABLE IF NOT EXISTS missing_items (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   order_item_id UUID        NOT NULL,
   reason        TEXT        NOT NULL,
@@ -26,9 +26,9 @@ CREATE TABLE missing_items (
 );
 
 -- Busca de faltantes por item
-CREATE INDEX idx_missing_items_order_item_id ON missing_items (order_item_id);
+CREATE INDEX IF NOT EXISTS idx_missing_items_order_item_id ON missing_items (order_item_id);
 -- Auditoria: faltantes registrados por usuário
-CREATE INDEX idx_missing_items_created_by    ON missing_items (created_by);
+CREATE INDEX IF NOT EXISTS idx_missing_items_created_by    ON missing_items (created_by);
 
 COMMENT ON TABLE  missing_items               IS 'Registros de itens não encontrados durante a separação, com motivo obrigatório.';
 COMMENT ON COLUMN missing_items.order_item_id IS 'Item do pedido ao qual o registro pertence.';

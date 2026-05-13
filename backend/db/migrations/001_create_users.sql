@@ -6,7 +6,7 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   name          VARCHAR(150) NOT NULL,
   email         VARCHAR(255) NOT NULL,
@@ -21,9 +21,9 @@ CREATE TABLE users (
 );
 
 -- Busca por email no login
-CREATE INDEX idx_users_email ON users (email);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 -- Filtro por papel (ex: listar só estoquistas)
-CREATE INDEX idx_users_role  ON users (role);
+CREATE INDEX IF NOT EXISTS idx_users_role  ON users (role);
 
 COMMENT ON TABLE  users            IS 'Usuários do sistema com autenticação JWT.';
 COMMENT ON COLUMN users.role       IS 'ADMIN ou ESTOQUISTA.';

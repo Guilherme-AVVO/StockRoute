@@ -20,17 +20,27 @@ const app = express();
 // real do cliente em X-Forwarded-For. Usamos valor numérico (número de hops
 // confiáveis) em vez de `true` para evitar spoofing do header.
 //
-// - TRUST_PROXY=1   → confia em 1 proxy à frente (padrão Render/Railway)
-// - TRUST_PROXY=2+  → mais hops, se houver CDN extra
-// - sem env e prod  → assume 1
-// - sem env e dev   → não confia (default do Express)
+// - TRUST_PROXY=1     → confia em 1 proxy à frente (padrão Render/Railway)
+// - TRUST_PROXY=2+    → mais hops, se houver CDN extra
+// - sem env, mas RENDER/RAILWAY/FLY/NODE_ENV=production → assume 1
+// - sem env e dev local → não confia (default do Express)
+//
+// Detectamos a plataforma por variáveis que ela seta automaticamente,
+// para não depender exclusivamente de NODE_ENV (que o Render às vezes
+// não inicializa como 'production' por padrão).
 const TRUST_PROXY = process.env.TRUST_PROXY;
+const isBehindProxy =
+     process.env.NODE_ENV === 'production'
+  || process.env.RENDER              // setada automaticamente pelo Render
+  || process.env.RAILWAY_ENVIRONMENT  // setada automaticamente pelo Railway
+  || process.env.FLY_APP_NAME;        // setada automaticamente pelo Fly.io
+
 if (TRUST_PROXY) {
   const trustProxyValue = Number.isNaN(Number(TRUST_PROXY))
     ? TRUST_PROXY
     : Number(TRUST_PROXY);
   app.set('trust proxy', trustProxyValue);
-} else if (process.env.NODE_ENV === 'production') {
+} else if (isBehindProxy) {
   app.set('trust proxy', 1);
 }
 

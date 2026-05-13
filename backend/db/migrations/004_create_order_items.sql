@@ -9,7 +9,7 @@
 -- garantindo integridade dupla contra inconsistências.
 -- ============================================================
 
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id         UUID        NOT NULL,
   product_id       UUID        NOT NULL,
@@ -49,11 +49,11 @@ CREATE TABLE order_items (
 );
 
 -- Busca de todos os itens de um pedido (query mais frequente do sistema)
-CREATE INDEX idx_order_items_order_id   ON order_items (order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id   ON order_items (order_id);
 -- Join com produtos
-CREATE INDEX idx_order_items_product_id ON order_items (product_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items (product_id);
 -- Filtro por status de item
-CREATE INDEX idx_order_items_status     ON order_items (status);
+CREATE INDEX IF NOT EXISTS idx_order_items_status     ON order_items (status);
 
 COMMENT ON TABLE  order_items                  IS 'Itens de separação de cada pedido. Um pedido tem 1..N itens.';
 COMMENT ON COLUMN order_items.quantity         IS 'Quantidade total pedida (unidade definida pelo produto).';

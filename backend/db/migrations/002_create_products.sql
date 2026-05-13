@@ -5,7 +5,7 @@
 -- distintos mesmo que sejam do mesmo item físico.
 -- ============================================================
 
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   sku        TEXT        NOT NULL,
   name       VARCHAR(150) NOT NULL,
@@ -19,9 +19,9 @@ CREATE TABLE products (
 );
 
 -- Busca de produto por SKU (muito frequente na importação de pedidos)
-CREATE INDEX idx_products_sku  ON products (sku);
+CREATE INDEX IF NOT EXISTS idx_products_sku  ON products (sku);
 -- Busca por nome (autocomplete / pesquisa)
-CREATE INDEX idx_products_name ON products USING gin (to_tsvector('portuguese', name));
+CREATE INDEX IF NOT EXISTS idx_products_name ON products USING gin (to_tsvector('portuguese', name));
 
 COMMENT ON TABLE  products       IS 'Produtos do estoque. Unidade de medida é atributo do produto.';
 COMMENT ON COLUMN products.unit  IS 'UN=Unidade, CX=Caixa, SC=Saco, PC=Peça, CT=Cartela, PR=Par, M=Metro.';

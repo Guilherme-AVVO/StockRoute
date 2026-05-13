@@ -4,7 +4,7 @@
 -- ou mais fotos. O limite de fotos por item é definido no backend.
 -- ============================================================
 
-CREATE TABLE picking_evidences (
+CREATE TABLE IF NOT EXISTS picking_evidences (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   order_item_id UUID        NOT NULL,
   image_url     TEXT        NOT NULL,
@@ -25,9 +25,9 @@ CREATE TABLE picking_evidences (
 );
 
 -- Busca de todas as evidências de um item (query direta)
-CREATE INDEX idx_picking_evidences_order_item_id ON picking_evidences (order_item_id);
+CREATE INDEX IF NOT EXISTS idx_picking_evidences_order_item_id ON picking_evidences (order_item_id);
 -- Auditoria: evidências criadas por um usuário
-CREATE INDEX idx_picking_evidences_created_by    ON picking_evidences (created_by);
+CREATE INDEX IF NOT EXISTS idx_picking_evidences_created_by    ON picking_evidences (created_by);
 
 COMMENT ON TABLE  picking_evidences               IS 'Fotos tiradas durante a separação de um item do pedido.';
 COMMENT ON COLUMN picking_evidences.order_item_id IS 'Item ao qual a foto pertence.';

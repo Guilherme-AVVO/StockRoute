@@ -4,7 +4,7 @@
 -- único e rastreia o PDF original que lhe deu origem.
 -- ============================================================
 
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number  VARCHAR(50)  NOT NULL,
   customer_name VARCHAR(150) NOT NULL,
@@ -20,9 +20,9 @@ CREATE TABLE orders (
 -- Lookup por número do pedido (já coberto pela constraint UNIQUE)
 -- Filtro por status (listagens do painel, muito frequente)
 -- Filtro por status (listagens do painel, muito frequente)
-CREATE INDEX idx_orders_status             ON orders (status);
+CREATE INDEX IF NOT EXISTS idx_orders_status             ON orders (status);
 -- Ordenação padrão por data de criação
-CREATE INDEX idx_orders_created_at         ON orders (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at         ON orders (created_at DESC);
 
 COMMENT ON TABLE  orders              IS 'Pedidos importados de DAVs (PDFs). Um pedido agrupa itens a serem separados.';
 COMMENT ON COLUMN orders.order_number IS 'Número único do pedido extraído do DAV.';
