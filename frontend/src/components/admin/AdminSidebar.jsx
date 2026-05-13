@@ -70,7 +70,6 @@ export default function AdminSidebar({ isOpen, onClose, activeSection, onNavigat
               stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Revisões
-          <span className="nav-count">12</span>
         </a>
 
         <a

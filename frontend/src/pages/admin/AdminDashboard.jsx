@@ -146,7 +146,11 @@ export default function AdminDashboard() {
                   </svg>
                   Enviar novo DAV
                 </button>
-                <button className="btn btn-secondary" type="button">
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={() => setActiveSection('reviews')}
+                >
                   Ver revisões pendentes
                 </button>
               </div>

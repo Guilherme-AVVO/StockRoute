@@ -8,65 +8,73 @@ import sql from '../pool.js';
 // Itens sem match são retornados no resumo do import mas não salvos.
 // ============================================================
 
-// Colunas de resumo reutilizadas em list e find
-const orderSummaryFields = sql`
-  o.id,
-  o.order_number,
-  o.customer_name,
-  o.status,
-  o.pdf_url,
-  o.created_at,
-  o.updated_at,
-  COUNT(oi.id)::int                                              AS total_items,
-  SUM(CASE WHEN oi.status = 'PICKED'  THEN 1 ELSE 0 END)::int  AS picked_items,
-  SUM(CASE WHEN oi.status = 'MISSING' THEN 1 ELSE 0 END)::int  AS missing_items,
-  SUM(CASE WHEN oi.status = 'PARTIAL' THEN 1 ELSE 0 END)::int  AS partial_items
-`;
-
 // Lista pedidos com filtros opcionais de status e/ou busca textual.
 // Ordenação por created_at DESC (mais recente primeiro).
+//
+// Subqueries para contagens evitam que o LEFT JOIN com unlinked_dav_items
+// multiplique linhas e quebre o COUNT de order_items.
 export async function listOrders({ status, search } = {}) {
   const pattern = search ? `%${search}%` : null;
 
   if (status && pattern) {
     return sql`
-      SELECT ${orderSummaryFields}
+      SELECT
+        o.id, o.order_number, o.customer_name, o.status, o.pdf_url,
+        o.created_at, o.updated_at,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id)                                      AS total_items,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'PICKED')             AS picked_items,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'MISSING')            AS missing_items,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'PARTIAL')            AS partial_items,
+        (SELECT COUNT(*)::int FROM unlinked_dav_items u WHERE u.order_id = o.id AND u.status = 'PENDING')        AS unlinked_items
       FROM orders o
-      LEFT JOIN order_items oi ON oi.order_id = o.id
       WHERE o.status = ${status}
         AND (o.order_number ILIKE ${pattern} OR o.customer_name ILIKE ${pattern})
-      GROUP BY o.id
       ORDER BY o.created_at DESC
     `;
   }
 
   if (status) {
     return sql`
-      SELECT ${orderSummaryFields}
+      SELECT
+        o.id, o.order_number, o.customer_name, o.status, o.pdf_url,
+        o.created_at, o.updated_at,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id)                                      AS total_items,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'PICKED')             AS picked_items,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'MISSING')            AS missing_items,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'PARTIAL')            AS partial_items,
+        (SELECT COUNT(*)::int FROM unlinked_dav_items u WHERE u.order_id = o.id AND u.status = 'PENDING')        AS unlinked_items
       FROM orders o
-      LEFT JOIN order_items oi ON oi.order_id = o.id
       WHERE o.status = ${status}
-      GROUP BY o.id
       ORDER BY o.created_at DESC
     `;
   }
 
   if (pattern) {
     return sql`
-      SELECT ${orderSummaryFields}
+      SELECT
+        o.id, o.order_number, o.customer_name, o.status, o.pdf_url,
+        o.created_at, o.updated_at,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id)                                      AS total_items,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'PICKED')             AS picked_items,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'MISSING')            AS missing_items,
+        (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'PARTIAL')            AS partial_items,
+        (SELECT COUNT(*)::int FROM unlinked_dav_items u WHERE u.order_id = o.id AND u.status = 'PENDING')        AS unlinked_items
       FROM orders o
-      LEFT JOIN order_items oi ON oi.order_id = o.id
       WHERE o.order_number ILIKE ${pattern} OR o.customer_name ILIKE ${pattern}
-      GROUP BY o.id
       ORDER BY o.created_at DESC
     `;
   }
 
   return sql`
-    SELECT ${orderSummaryFields}
+    SELECT
+      o.id, o.order_number, o.customer_name, o.status, o.pdf_url,
+      o.created_at, o.updated_at,
+      (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id)                                      AS total_items,
+      (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'PICKED')             AS picked_items,
+      (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'MISSING')            AS missing_items,
+      (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id AND oi.status = 'PARTIAL')            AS partial_items,
+      (SELECT COUNT(*)::int FROM unlinked_dav_items u WHERE u.order_id = o.id AND u.status = 'PENDING')        AS unlinked_items
     FROM orders o
-    LEFT JOIN order_items oi ON oi.order_id = o.id
-    GROUP BY o.id
     ORDER BY o.created_at DESC
   `;
 }

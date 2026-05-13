@@ -304,7 +304,8 @@ export default function UploadDav() {
               <tbody>
                 {orders.map((order) => {
                   const st = STATUS_LABEL[order.status] ?? { label: order.status, cls: '' };
-                  const unlinked = order.totalItems - (order.pickedItems + order.missingItems + order.partialItems);
+                  // Itens não vinculados vêm do backend (unlinked_dav_items com status=PENDING).
+                  const unlinked = order.unlinkedItems ?? 0;
                   return (
                     <tr key={order.id}>
                       <td><span className="dav-id">{order.orderNumber}</span></td>

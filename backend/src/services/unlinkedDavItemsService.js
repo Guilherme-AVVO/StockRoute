@@ -11,6 +11,7 @@ import {
   findProductBySku,
   createProduct,
 } from '../../db/queries/products.js';
+import { createOrderItem } from '../../db/queries/orders.js';
 import { createIgnoredDavItem } from './ignoredDavItemsService.js';
 
 const VALID_UNITS = ['UN', 'CX', 'SC', 'PC', 'CT', 'PR', 'M'];
@@ -55,6 +56,14 @@ export async function linkToExistingProduct(itemId, productId, userId) {
   if (!product) {
     throw { status: 404, message: 'Produto informado não existe no catálogo' };
   }
+
+  // Insere o item no pedido — sem isso, o item resolvido nunca chegaria
+  // à lista do estoquista quando o pedido fosse publicado.
+  await createOrderItem({
+    orderId:   item.order_id,
+    productId: product.id,
+    quantity:  item.quantity,
+  });
 
   const updated = await updateUnlinkedDavItemStatus(itemId, {
     status:         'LINKED',
@@ -102,6 +111,13 @@ export async function registerAsNewProduct(itemId, productData, userId) {
     name,
     unit,
     imageUrl: productData.imageUrl ?? null,
+  });
+
+  // Insere o item no pedido para que o picking enxergue após publicação.
+  await createOrderItem({
+    orderId:   item.order_id,
+    productId: product.id,
+    quantity:  item.quantity,
   });
 
   const updated = await updateUnlinkedDavItemStatus(itemId, {

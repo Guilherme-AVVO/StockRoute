@@ -28,17 +28,18 @@ async function findProductForSku(rawSku) {
 
 function toOrderDto(row) {
   return {
-    id:           row.id,
-    orderNumber:  row.order_number,
-    customerName: row.customer_name,
-    status:       row.status,
-    pdfUrl:       row.pdf_url ?? null,
-    createdAt:    row.created_at,
-    updatedAt:    row.updated_at,
-    totalItems:   row.total_items   ?? undefined,
-    pickedItems:  row.picked_items  ?? undefined,
-    missingItems: row.missing_items ?? undefined,
-    partialItems: row.partial_items ?? undefined,
+    id:            row.id,
+    orderNumber:   row.order_number,
+    customerName:  row.customer_name,
+    status:        row.status,
+    pdfUrl:        row.pdf_url ?? null,
+    createdAt:     row.created_at,
+    updatedAt:     row.updated_at,
+    totalItems:    row.total_items    ?? undefined,
+    pickedItems:   row.picked_items   ?? undefined,
+    missingItems:  row.missing_items  ?? undefined,
+    partialItems:  row.partial_items  ?? undefined,
+    unlinkedItems: row.unlinked_items ?? undefined,
   };
 }
 
