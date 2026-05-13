@@ -34,10 +34,12 @@ export async function createProduct(data) {
   let response;
   try {
     response = await api.post('/products', {
-      sku:      data.sku,
-      name:     data.name,
-      unit:     data.unit,
-      imageUrl: data.imageUrl || null,
+      sku:                   data.sku,
+      name:                  data.name,
+      unit:                  data.unit,
+      imageUrl:              data.imageUrl || null,
+      manufacturerReference: data.manufacturerReference || null,
+      manufacturerName:      data.manufacturerName || null,
     });
   } catch {
     throw new Error('Erro de rede. Verifique sua conexão.');
@@ -54,10 +56,12 @@ export async function updateProduct(id, data) {
   let response;
   try {
     response = await api.put(`/products/${id}`, {
-      sku:      data.sku,
-      name:     data.name,
-      unit:     data.unit,
-      imageUrl: data.imageUrl || null,
+      sku:                   data.sku,
+      name:                  data.name,
+      unit:                  data.unit,
+      imageUrl:              data.imageUrl || null,
+      manufacturerReference: data.manufacturerReference || null,
+      manufacturerName:      data.manufacturerName || null,
     });
   } catch {
     throw new Error('Erro de rede. Verifique sua conexão.');

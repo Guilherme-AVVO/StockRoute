@@ -2,6 +2,7 @@ import { parseDav } from './davParserService.js';
 import { shouldIgnoreDavItem } from './ignoredDavItemsService.js';
 import {
   findProductBySku,
+  findProductByManufacturerReference,
 } from '../../db/queries/products.js';
 import {
   listOrders,
@@ -24,6 +25,22 @@ async function findProductForSku(rawSku) {
     if (short !== full) product = await findProductBySku(short);
   }
   return product;
+}
+
+// Match prioritário do item DAV → produto cadastrado.
+// Ordem: 1) manufacturer_reference + manufacturer_name (mais preciso)
+//        2) manufacturer_reference sozinha
+//        3) SKU interno do DAV (fallback histórico)
+// Descrição NÃO é usada como match automático (apenas como referência visual).
+async function findProductForDavItem(item) {
+  if (item.manufacturerReference) {
+    const byRef = await findProductByManufacturerReference(
+      item.manufacturerReference,
+      item.manufacturerName,
+    );
+    if (byRef) return byRef;
+  }
+  return findProductForSku(item.rawSku);
 }
 
 function toOrderDto(row) {
@@ -86,25 +103,29 @@ export async function importDav(fileBuffer) {
       continue;
     }
 
-    const product = await findProductForSku(item.rawSku);
+    const product = await findProductForDavItem(item);
 
     if (!product) {
       // Persistimos em unlinked_dav_items para que o ADMIN consiga resolver depois.
       // Sem isso, o item desaparece após a resposta do import.
       const saved = await createUnlinkedDavItem({
-        orderId:        order.id,
-        rawSku:         item.rawSku,
-        rawDescription: item.rawDescription,
-        quantity:       item.quantity,
-        unit:           item.unit,
+        orderId:               order.id,
+        rawSku:                item.rawSku,
+        rawDescription:        item.rawDescription,
+        quantity:              item.quantity,
+        unit:                  item.unit,
+        manufacturerReference: item.manufacturerReference,
+        manufacturerName:      item.manufacturerName,
       });
       counts.unlinked++;
       unlinkedItems.push({
-        id:             saved.id,
-        rawSku:         item.rawSku,
-        rawDescription: item.rawDescription,
-        quantity:       item.quantity,
-        unit:           item.unit,
+        id:                    saved.id,
+        rawSku:                item.rawSku,
+        rawDescription:        item.rawDescription,
+        quantity:              item.quantity,
+        unit:                  item.unit,
+        manufacturerReference: item.manufacturerReference,
+        manufacturerName:      item.manufacturerName,
       });
       continue;
     }

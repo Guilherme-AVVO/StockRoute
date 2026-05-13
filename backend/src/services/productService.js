@@ -12,14 +12,24 @@ const ALLOWED_UNITS = ['UN', 'CX', 'SC', 'PC', 'CT', 'PR', 'M'];
 // Converte linha do banco (snake_case) para objeto camelCase para o frontend.
 function toDto(row) {
   return {
-    id:        row.id,
-    sku:       row.sku,
-    name:      row.name,
-    unit:      row.unit,
-    imageUrl:  row.image_url ?? null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id:                    row.id,
+    sku:                   row.sku,
+    name:                  row.name,
+    unit:                  row.unit,
+    imageUrl:              row.image_url ?? null,
+    manufacturerReference: row.manufacturer_reference ?? null,
+    manufacturerName:      row.manufacturer_name ?? null,
+    createdAt:             row.created_at,
+    updatedAt:             row.updated_at,
   };
+}
+
+// Normaliza strings opcionais para evitar gravar string vazia / espaços extras.
+// Resultado em UPPER ajuda o match por referência durante import de DAV.
+function normalizeOptional(value) {
+  if (value === undefined || value === null) return null;
+  const trimmed = String(value).trim().replace(/\s+/g, ' ');
+  return trimmed ? trimmed.toUpperCase() : null;
 }
 
 function validate({ sku, name, unit }) {
@@ -53,13 +63,15 @@ export async function createProduct(data) {
   const name     = data.name?.trim()     ?? '';
   const unit     = data.unit             ?? '';
   const imageUrl = data.imageUrl?.trim() || null;
+  const manufacturerReference = normalizeOptional(data.manufacturerReference);
+  const manufacturerName      = normalizeOptional(data.manufacturerName);
 
   validate({ sku, name, unit });
 
   const existing = await findProductBySku(sku);
   if (existing) throw { status: 409, message: 'SKU já cadastrado' };
 
-  const row = await createProductQuery({ sku, name, unit, imageUrl });
+  const row = await createProductQuery({ sku, name, unit, imageUrl, manufacturerReference, manufacturerName });
   return toDto(row);
 }
 
@@ -68,6 +80,8 @@ export async function updateProduct(id, data) {
   const name     = data.name?.trim()     ?? '';
   const unit     = data.unit             ?? '';
   const imageUrl = data.imageUrl?.trim() || null;
+  const manufacturerReference = normalizeOptional(data.manufacturerReference);
+  const manufacturerName      = normalizeOptional(data.manufacturerName);
 
   validate({ sku, name, unit });
 
@@ -77,7 +91,7 @@ export async function updateProduct(id, data) {
     throw { status: 409, message: 'SKU já cadastrado' };
   }
 
-  const row = await updateProductQuery(id, { sku, name, unit, imageUrl });
+  const row = await updateProductQuery(id, { sku, name, unit, imageUrl, manufacturerReference, manufacturerName });
   if (!row) throw { status: 404, message: 'Produto não encontrado' };
   return toDto(row);
 }

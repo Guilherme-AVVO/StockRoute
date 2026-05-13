@@ -19,21 +19,23 @@ const VALID_UNITS = ['UN', 'CX', 'SC', 'PC', 'CT', 'PR', 'M'];
 // Converte snake_case do banco para camelCase do frontend.
 function toDto(row) {
   return {
-    id:              row.id,
-    orderId:         row.order_id,
-    davNumber:       row.dav_number,
-    customerName:    row.customer_name,
-    rawSku:          row.raw_sku,
-    rawDescription:  row.raw_description,
-    quantity:        row.quantity,
-    unit:            row.unit,
-    status:          row.status,
-    productId:       row.product_id ?? null,
-    resolutionNote:  row.resolution_note ?? null,
-    resolvedAt:      row.resolved_at ?? null,
-    resolvedBy:      row.resolved_by ?? null,
-    createdAt:       row.created_at,
-    updatedAt:       row.updated_at,
+    id:                    row.id,
+    orderId:               row.order_id,
+    davNumber:             row.dav_number,
+    customerName:          row.customer_name,
+    rawSku:                row.raw_sku,
+    rawDescription:        row.raw_description,
+    quantity:              row.quantity,
+    unit:                  row.unit,
+    manufacturerReference: row.manufacturer_reference ?? null,
+    manufacturerName:      row.manufacturer_name ?? null,
+    status:                row.status,
+    productId:             row.product_id ?? null,
+    resolutionNote:        row.resolution_note ?? null,
+    resolvedAt:            row.resolved_at ?? null,
+    resolvedBy:            row.resolved_by ?? null,
+    createdAt:             row.created_at,
+    updatedAt:             row.updated_at,
   };
 }
 
@@ -106,11 +108,17 @@ export async function registerAsNewProduct(itemId, productData, userId) {
     };
   }
 
+  // Reaproveita referência/fabricante do item DAV quando o ADMIN não os edita.
+  const manufacturerReference = productData.manufacturerReference ?? item.manufacturer_reference ?? null;
+  const manufacturerName      = productData.manufacturerName      ?? item.manufacturer_name      ?? null;
+
   const product = await createProduct({
     sku,
     name,
     unit,
     imageUrl: productData.imageUrl ?? null,
+    manufacturerReference,
+    manufacturerName,
   });
 
   // Insere o item no pedido para que o picking enxergue após publicação.

@@ -25,8 +25,10 @@ export async function linkUnlinkedItemToProduct(itemId, productId) {
 }
 
 // Cria novo produto a partir do item DAV.
-export async function createProductFromUnlinkedItem(itemId, { sku, name, unit, imageUrl }) {
-  const res = await api.post(`/unlinked-dav-items/${itemId}/create-product`, { sku, name, unit, imageUrl });
+export async function createProductFromUnlinkedItem(itemId, { sku, name, unit, imageUrl, manufacturerReference, manufacturerName }) {
+  const res = await api.post(`/unlinked-dav-items/${itemId}/create-product`, {
+    sku, name, unit, imageUrl, manufacturerReference, manufacturerName,
+  });
   const data = await res.json();
   if (!res.ok) {
     const err = new Error(extractError(res, data, 'Erro ao cadastrar produto'));

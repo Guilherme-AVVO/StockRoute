@@ -5,6 +5,7 @@ import sql from '../pool.js';
 // ============================================================
 
 // Campos retornados em conjunto com dados do pedido de origem.
+// manufacturer_reference / manufacturer_name vêm da migration 009.
 const unlinkedWithOrderFields = sql`
   u.id,
   u.order_id,
@@ -12,6 +13,8 @@ const unlinkedWithOrderFields = sql`
   u.raw_description,
   u.quantity,
   u.unit,
+  u.manufacturer_reference,
+  u.manufacturer_name,
   u.status,
   u.product_id,
   u.resolution_note,
@@ -56,11 +59,23 @@ export async function findUnlinkedDavItemById(id) {
 
 // Cria registro ao importar DAV — chamado pelo orderService.importDav
 // quando o item extraído não tem produto correspondente no catálogo.
-export async function createUnlinkedDavItem({ orderId, rawSku, rawDescription, quantity, unit }) {
+// manufacturerReference/manufacturerName vêm da coluna "Referência/Fabricante" do PDF
+// e permitem fazer match automático quando o ADMIN cadastrar o produto depois.
+export async function createUnlinkedDavItem({
+  orderId, rawSku, rawDescription, quantity, unit,
+  manufacturerReference, manufacturerName,
+}) {
   const rows = await sql`
-    INSERT INTO unlinked_dav_items (order_id, raw_sku, raw_description, quantity, unit)
-    VALUES (${orderId}, ${rawSku ?? null}, ${rawDescription}, ${quantity}, ${unit ?? null})
-    RETURNING id, order_id, raw_sku, raw_description, quantity, unit, status, created_at
+    INSERT INTO unlinked_dav_items (
+      order_id, raw_sku, raw_description, quantity, unit,
+      manufacturer_reference, manufacturer_name
+    )
+    VALUES (
+      ${orderId}, ${rawSku ?? null}, ${rawDescription}, ${quantity}, ${unit ?? null},
+      ${manufacturerReference ?? null}, ${manufacturerName ?? null}
+    )
+    RETURNING id, order_id, raw_sku, raw_description, quantity, unit,
+              manufacturer_reference, manufacturer_name, status, created_at
   `;
   return rows[0];
 }
@@ -77,8 +92,10 @@ export async function updateUnlinkedDavItemStatus(id, { status, productId = null
         resolved_by     = ${resolvedBy},
         updated_at      = NOW()
     WHERE id = ${id}
-    RETURNING id, order_id, raw_sku, raw_description, quantity, unit, status, product_id,
-              resolution_note, resolved_at, resolved_by, created_at, updated_at
+    RETURNING id, order_id, raw_sku, raw_description, quantity, unit,
+              manufacturer_reference, manufacturer_name,
+              status, product_id, resolution_note, resolved_at, resolved_by,
+              created_at, updated_at
   `;
   return rows[0] ?? null;
 }

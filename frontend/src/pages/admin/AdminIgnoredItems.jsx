@@ -344,10 +344,12 @@ function UnlinkedList({ loading, items, onLink, onRegister, onHide, onCreateRule
         <thead>
           <tr>
             <th>DAV</th>
-            <th>Código/Ref.</th>
+            <th>SKU interno</th>
+            <th>Ref. fabricante</th>
+            <th>Fabricante</th>
             <th>Descrição</th>
             <th>Qtd.</th>
-            <th>Unidade</th>
+            <th>Un.</th>
             <th>Cliente</th>
             <th>Status</th>
             <th>Ações</th>
@@ -357,7 +359,9 @@ function UnlinkedList({ loading, items, onLink, onRegister, onHide, onCreateRule
           {items.map((item) => (
             <tr key={item.id}>
               <td><span className="dav-id">{item.davNumber}</span></td>
-              <td><span className="ignored-code-ref">{item.rawSku}</span></td>
+              <td><span className="ignored-code-ref">{item.rawSku || '—'}</span></td>
+              <td><span className="ignored-code-ref">{item.manufacturerReference || '—'}</span></td>
+              <td><span className="ignored-muted">{item.manufacturerName || '—'}</span></td>
               <td><span className="ignored-description">{item.rawDescription}</span></td>
               <td><span className="counts"><span className="num">{item.quantity}</span></span></td>
               <td><span className="ignored-muted">{item.unit}</span></td>
@@ -438,8 +442,12 @@ export default function AdminIgnoredItems() {
   const [productSearch,   setProductSearch]   = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
 
-  // Formulário de cadastro rápido a partir de item não vinculado
-  const [registerForm, setRegisterForm] = useState({ sku: '', name: '', unit: 'UN', imageUrl: '' });
+  // Formulário de cadastro rápido a partir de item não vinculado.
+  // Inclui referência/fabricante para que o próximo DAV faça match automático.
+  const [registerForm, setRegisterForm] = useState({
+    sku: '', name: '', unit: 'UN', imageUrl: '',
+    manufacturerReference: '', manufacturerName: '',
+  });
 
   // Formulário de motivo para ocultar item não vinculado
   const [hideUnlinkedReason, setHideUnlinkedReason] = useState('');
@@ -632,14 +640,19 @@ export default function AdminIgnoredItems() {
   // Cria produto novo no catálogo a partir do item DAV.
   async function confirmRegisterUnlinked(item) {
     setFormError(null);
-    const { sku, name, unit, imageUrl } = registerForm;
+    const { sku, name, unit, imageUrl, manufacturerReference, manufacturerName } = registerForm;
     if (!sku.trim() || !name.trim() || !unit.trim()) {
       setFormError('SKU, nome e unidade são obrigatórios.');
       return;
     }
     setFormLoading(true);
     try {
-      await createProductFromUnlinkedItem(item.id, { sku, name, unit, imageUrl: imageUrl || null });
+      await createProductFromUnlinkedItem(item.id, {
+        sku, name, unit,
+        imageUrl: imageUrl || null,
+        manufacturerReference: manufacturerReference || null,
+        manufacturerName:      manufacturerName      || null,
+      });
       setFeedback(`Produto "${name}" cadastrado e item resolvido.`);
       closeModal();
       reloadUnlinked();
@@ -680,13 +693,17 @@ export default function AdminIgnoredItems() {
     setModal({ type: 'link', item });
   }
 
-  // Abre modal "Cadastrar" pré-preenchendo com dados do DAV
+  // Abre modal "Cadastrar" pré-preenchendo com dados do DAV.
+  // manufacturerReference/manufacturerName são essenciais para que o próximo
+  // DAV com a mesma referência seja vinculado automaticamente ao produto.
   function openRegisterModalReal(item) {
     setRegisterForm({
-      sku:      item.rawSku ?? '',
-      name:     item.rawDescription ?? '',
-      unit:     ['UN','CX','SC','PC','CT','PR','M'].includes(item.unit) ? item.unit : 'UN',
-      imageUrl: '',
+      sku:                   item.rawSku ?? '',
+      name:                  item.rawDescription ?? '',
+      unit:                  ['UN','CX','SC','PC','CT','PR','M'].includes(item.unit) ? item.unit : 'UN',
+      imageUrl:              '',
+      manufacturerReference: item.manufacturerReference ?? '',
+      manufacturerName:      item.manufacturerName      ?? '',
     });
     setFormError(null);
     setModal({ type: 'register', item });
@@ -1078,6 +1095,19 @@ export default function AdminIgnoredItems() {
                     <input value={registerForm.name}
                       onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
                       maxLength={150} required />
+                  </label>
+                  {/* Referência e fabricante — chave para o matching automático no próximo DAV */}
+                  <label>
+                    <span>Ref. fabricante</span>
+                    <input value={registerForm.manufacturerReference}
+                      onChange={(e) => setRegisterForm({ ...registerForm, manufacturerReference: e.target.value })}
+                      placeholder="Ex: W070123TX1022N" />
+                  </label>
+                  <label>
+                    <span>Fabricante</span>
+                    <input value={registerForm.manufacturerName}
+                      onChange={(e) => setRegisterForm({ ...registerForm, manufacturerName: e.target.value })}
+                      placeholder="Ex: MULTIMARCA" />
                   </label>
                   <label className="ignored-form-wide">
                     <span>URL da imagem (opcional)</span>

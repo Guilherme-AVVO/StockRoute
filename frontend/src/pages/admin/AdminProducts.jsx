@@ -20,7 +20,7 @@ const UNITS = [
   { value: 'M',  label: 'M  — Metro'    },
 ];
 
-const EMPTY_FORM = { sku: '', name: '', unit: 'UN', imageUrl: '' };
+const EMPTY_FORM = { sku: '', name: '', unit: 'UN', imageUrl: '', manufacturerReference: '', manufacturerName: '' };
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -84,10 +84,12 @@ export default function AdminProducts() {
   function openEdit(product) {
     setEditTarget(product);
     setFormData({
-      sku:      product.sku,
-      name:     product.name,
-      unit:     product.unit,
-      imageUrl: product.imageUrl || '',
+      sku:                   product.sku,
+      name:                  product.name,
+      unit:                  product.unit,
+      imageUrl:              product.imageUrl || '',
+      manufacturerReference: product.manufacturerReference || '',
+      manufacturerName:      product.manufacturerName || '',
     });
     setFormError(null);
     setModalOpen(true);
@@ -189,7 +191,7 @@ export default function AdminProducts() {
           </svg>
           <input
             type="search"
-            placeholder="Buscar por SKU ou nome..."
+            placeholder="Buscar por SKU, nome, referência do fabricante ou fabricante…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Buscar produto"
@@ -231,6 +233,8 @@ export default function AdminProducts() {
             <thead>
               <tr>
                 <th>SKU</th>
+                <th>Ref. fabricante</th>
+                <th>Fabricante</th>
                 <th>Nome</th>
                 <th>Unidade</th>
                 <th className="col-img">Imagem</th>
@@ -243,6 +247,13 @@ export default function AdminProducts() {
                 <tr key={product.id}>
                   <td>
                     <span className="products-sku">{product.sku}</span>
+                  </td>
+                  <td>
+                    {/* Referência do fabricante: deve ficar bem visível na linha. */}
+                    <span className="products-sku">{product.manufacturerReference || '—'}</span>
+                  </td>
+                  <td>
+                    <span className="products-unit">{product.manufacturerName || '—'}</span>
                   </td>
                   <td className="products-name">{product.name}</td>
                   <td>
@@ -394,6 +405,40 @@ export default function AdminProducts() {
                       <option key={u.value} value={u.value}>{u.label}</option>
                     ))}
                   </select>
+                </div>
+
+                {/* Referência/código do fabricante — vem da coluna "Referência/Fabricante" do DAV.
+                    É usada como match principal para vincular itens DAV automaticamente. */}
+                <div className="form-group">
+                  <label htmlFor="prod-mfr-ref">Referência do fabricante</label>
+                  <input
+                    id="prod-mfr-ref"
+                    name="manufacturerReference"
+                    type="text"
+                    className="form-input"
+                    placeholder="Ex.: W070123TX1022N"
+                    value={formData.manufacturerReference}
+                    onChange={handleFormChange}
+                  />
+                  <span className="form-hint">
+                    Código que aparece no DAV. Permite vincular itens automaticamente.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="prod-mfr-name">Fabricante</label>
+                  <input
+                    id="prod-mfr-name"
+                    name="manufacturerName"
+                    type="text"
+                    className="form-input"
+                    placeholder="Ex.: MULTIMARCA"
+                    value={formData.manufacturerName}
+                    onChange={handleFormChange}
+                  />
+                  <span className="form-hint">
+                    Nome do fabricante conforme aparece no DAV.
+                  </span>
                 </div>
 
                 <div className="form-group">
