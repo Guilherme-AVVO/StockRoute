@@ -157,7 +157,7 @@ export async function hideUnlinkedItem(itemId, reason, userId) {
   }
 
   const rule = await createIgnoredDavItem({
-    rawSku:         item.raw_sku,
+    matchType:      'NAME_CONTAINS',
     rawDescription: item.raw_description,
     reason:         String(reason).trim(),
     createdBy:      userId,

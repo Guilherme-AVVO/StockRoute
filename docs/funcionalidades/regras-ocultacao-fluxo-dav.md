@@ -24,13 +24,14 @@ Itens ocultos por regra não aparecem nessa aba.
 
 ## Quando vai para ocultos
 
-O item vai para "Ocultos" quando alguma regra ativa casa por SKU, descrição, nome, prefixo, referência do fabricante ou fabricante, conforme `match_type`.
+O item vai para "Ocultos" quando alguma regra ativa casa por nome ou fabricante, conforme `match_type`.
 
 Para regra por nome:
 
 - `NAME_CONTAINS` compara o valor informado contra a descrição extraída do DAV.
 - Quando o produto já existe, `NAME_CONTAINS` também compara contra `products.name` antes de enviar para revisão.
-- `NAME` faz a comparação exata nesses mesmos campos textuais.
+- `MANUFACTURER_NAME_CONTAINS` compara o valor informado contra o fabricante extraído do DAV.
+- `MANUFACTURER_NAME` exige fabricante igual ao valor informado.
 
 Nesse caso:
 

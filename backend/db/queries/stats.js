@@ -8,7 +8,7 @@ export async function getDashboardStats() {
       (SELECT COUNT(*)::int FROM orders WHERE status = 'COMPLETED')    AS orders_completed,
       (SELECT COUNT(*)::int FROM orders WHERE status = 'CANCELLED')    AS orders_cancelled,
       (SELECT COUNT(*)::int FROM products)                             AS total_products,
-      (SELECT COUNT(*)::int FROM ignored_dav_items WHERE active = true) AS active_ignored_rules
+      (SELECT COUNT(*)::int FROM ignored_dav_items WHERE active = true AND deleted_at IS NULL) AS active_ignored_rules
   `;
   return rows[0];
 }

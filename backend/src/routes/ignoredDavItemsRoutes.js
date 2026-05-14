@@ -4,7 +4,9 @@ import { requireRole } from '../middlewares/requireRole.js';
 import {
   listIgnoredDavItemsController,
   createIgnoredDavItemController,
-  deactivateIgnoredDavItemController,
+  updateIgnoredDavItemController,
+  setIgnoredDavItemStatusController,
+  deleteIgnoredDavItemController,
 } from '../controllers/ignoredDavItemsController.js';
 
 const router = Router();
@@ -14,8 +16,10 @@ router.use(authMiddleware, requireRole('ADMIN'));
 
 router.get('/',       listIgnoredDavItemsController);
 router.post('/',      createIgnoredDavItemController);
+router.put('/:id',    updateIgnoredDavItemController);
+router.patch('/:id/status', setIgnoredDavItemStatusController);
 
-// DELETE desativa a regra sem apagar o histórico (soft delete via active=false).
-router.delete('/:id', deactivateIgnoredDavItemController);
+// DELETE faz soft delete para preservar auditoria de itens já ocultados.
+router.delete('/:id', deleteIgnoredDavItemController);
 
 export default router;

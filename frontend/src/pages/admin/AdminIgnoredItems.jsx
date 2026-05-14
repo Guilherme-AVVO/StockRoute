@@ -5,7 +5,9 @@ import StatCard from '../../components/admin/StatCard.jsx';
 import {
   listIgnoredDavItems,
   createIgnoredDavItem,
-  deactivateIgnoredDavItem,
+  updateIgnoredDavItem,
+  setIgnoredDavItemActive,
+  deleteIgnoredDavItem,
 } from '../../services/ignoredDavItemsService.js';
 import {
   listUnlinkedDavItems,
@@ -28,20 +30,12 @@ const TABS = [
 
 const RULE_TYPES = [
   { value: 'NAME_CONTAINS',        label: 'Nome contém'         },
-  { value: 'DESCRIPTION_CONTAINS', label: 'Descrição contém'    },
-  { value: 'SKU_CONTAINS',         label: 'SKU contém'          },
-  { value: 'SKU_PREFIX',           label: 'Prefixo do SKU'      },
-  { value: 'NAME',                 label: 'Nome exato'          },
-  { value: 'SKU',                  label: 'SKU exato'           },
-  { value: 'DESCRIPTION',          label: 'Descrição exata'     },
-  { value: 'MANUFACTURER_REFERENCE', label: 'Referência exata'  },
-  { value: 'MANUFACTURER_REFERENCE_CONTAINS', label: 'Referência contém' },
-  { value: 'MANUFACTURER_NAME',    label: 'Fabricante exato'    },
+  { value: 'MANUFACTURER_NAME_CONTAINS', label: 'Fabricante contém' },
+  { value: 'MANUFACTURER_NAME',    label: 'Fabricante igual'    },
 ];
 
 const RULE_TYPE_LABEL = Object.fromEntries(RULE_TYPES.map((r) => [r.value, r.label]));
 
-const EMPTY_HIDE_FORM = { rawSku: '', rawDescription: '', reason: '' };
 const EMPTY_RULE_FORM = { type: 'NAME_CONTAINS', value: '', reason: '' };
 
 // ============================================================
@@ -61,6 +55,14 @@ function getRuleValue(rule) {
     ?? rule.manufacturerName
     ?? '—'
   );
+}
+
+function isSupportedRule(rule) {
+  return RULE_TYPES.some((type) => type.value === rule.matchType);
+}
+
+function getRuleLabel(rule) {
+  return RULE_TYPE_LABEL[rule.matchType] ?? 'Tipo antigo/incompatível';
 }
 
 // Ícones SVG dos cards de resumo
@@ -200,7 +202,7 @@ function HiddenItemsList({ loading, items, onView }) {
 // Lista da aba "Regras de ocultação" — API real
 // ============================================================
 
-function RulesList({ rules, onView, onDeactivate }) {
+function RulesList({ rules, onView, onEdit, onToggle, onDelete }) {
   if (rules.length === 0) {
     return (
       <div className="ignored-empty">
@@ -218,7 +220,6 @@ function RulesList({ rules, onView, onDeactivate }) {
             <th>Valor</th>
             <th>Motivo</th>
             <th>Status</th>
-            <th>Itens afetados</th>
             <th>Criada em</th>
             <th>Ações</th>
           </tr>
@@ -226,7 +227,7 @@ function RulesList({ rules, onView, onDeactivate }) {
         <tbody>
           {rules.map((rule) => (
             <tr key={rule.id}>
-              <td><span className="ignored-type servico">{RULE_TYPE_LABEL[rule.matchType] ?? rule.matchType}</span></td>
+              <td><span className="ignored-type servico">{getRuleLabel(rule)}</span></td>
               <td><span className="ignored-code-ref">{getRuleValue(rule)}</span></td>
               <td><span className="ignored-reason">{rule.reason}</span></td>
               <td>
@@ -234,12 +235,17 @@ function RulesList({ rules, onView, onDeactivate }) {
                   {rule.active ? 'Ativa' : 'Inativa'}
                 </span>
               </td>
-              <td><span className="ignored-muted">{rule.normalizedSku ?? rule.normalizedDescription ?? '—'}</span></td>
               <td><span className="ignored-muted">{formatDate(rule.createdAt)}</span></td>
               <td>
                 <div className="ignored-actions">
                   <button type="button" onClick={() => onView(rule)}>Ver detalhes</button>
-                  {rule.active && <button type="button" onClick={() => onDeactivate(rule)}>Desativar</button>}
+                  {isSupportedRule(rule) && <button type="button" onClick={() => onEdit(rule)}>Editar</button>}
+                  {isSupportedRule(rule) && (
+                    <button type="button" onClick={() => onToggle(rule)}>
+                      {rule.active ? 'Desativar' : 'Ativar'}
+                    </button>
+                  )}
+                  <button type="button" onClick={() => onDelete(rule)}>Apagar</button>
                 </div>
               </td>
             </tr>
@@ -252,7 +258,7 @@ function RulesList({ rules, onView, onDeactivate }) {
           <article className="ignored-mobile-card" key={rule.id}>
             <div className="ignored-mobile-head">
               <div>
-                <span className="ignored-type servico">{RULE_TYPE_LABEL[rule.matchType] ?? rule.matchType}</span>
+                <span className="ignored-type servico">{getRuleLabel(rule)}</span>
                 <strong style={{ marginTop: 6 }}>
                   <span className="ignored-code-ref">{getRuleValue(rule)}</span>
                 </strong>
@@ -267,17 +273,19 @@ function RulesList({ rules, onView, onDeactivate }) {
                 <strong>{rule.reason}</strong>
               </div>
               <div>
-                <span>Itens afetados</span>
-                <strong>{rule.active ? 'Regra ativa' : 'Regra inativa'}</strong>
-              </div>
-              <div>
                 <span>Criada em</span>
                 <strong>{formatDate(rule.createdAt)}</strong>
               </div>
             </div>
             <div className="ignored-actions">
               <button type="button" onClick={() => onView(rule)}>Ver detalhes</button>
-              {rule.active && <button type="button" onClick={() => onDeactivate(rule)}>Desativar</button>}
+              {isSupportedRule(rule) && <button type="button" onClick={() => onEdit(rule)}>Editar</button>}
+              {isSupportedRule(rule) && (
+                <button type="button" onClick={() => onToggle(rule)}>
+                  {rule.active ? 'Desativar' : 'Ativar'}
+                </button>
+              )}
+              <button type="button" onClick={() => onDelete(rule)}>Apagar</button>
             </div>
           </article>
         ))}
@@ -422,7 +430,6 @@ export default function AdminIgnoredItems() {
   const [modal,    setModal]    = useState(null);
 
   // Formulários
-  const [hideForm,     setHideForm]     = useState(EMPTY_HIDE_FORM);
   const [ruleForm,     setRuleForm]     = useState(EMPTY_RULE_FORM);
   const [formError,    setFormError]    = useState(null);
   const [formLoading,  setFormLoading]  = useState(false);
@@ -459,7 +466,7 @@ export default function AdminIgnoredItems() {
 
   // Contagens
   const activeHiddenCount = hiddenItems.length;
-  const activeRulesCount  = rules.filter((r) => r.active).length;
+  const activeRulesCount  = rules.filter((r) => r.active && isSupportedRule(r)).length;
   const unlinkedCount     = unlinkedItems.length;
 
   // Filtros
@@ -505,17 +512,20 @@ export default function AdminIgnoredItems() {
   }, [unlinkedItems, search]);
 
   // Handlers de modais
-  function openHideModal(prefill = {}) {
-    setHideForm({ ...EMPTY_HIDE_FORM, ...prefill });
-    setFormError(null);
-    setModal({ type: 'hide' });
-  }
   function openViewModal(item)      { setModal({ type: 'view', item }); }
-  function openUnhideModal(rule)    { setModal({ type: 'unhide', rule }); }
   function openRuleModal(prefill = {}) {
     setRuleForm({ ...EMPTY_RULE_FORM, ...prefill });
     setFormError(null);
     setModal({ type: 'rule' });
+  }
+  function openRuleEditModal(rule) {
+    setRuleForm({
+      type: rule.matchType,
+      value: getRuleValue(rule) === '—' ? '' : getRuleValue(rule),
+      reason: rule.reason ?? '',
+    });
+    setFormError(null);
+    setModal({ type: 'rule', rule });
   }
   function openRuleViewModal(rule)  { setModal({ type: 'rule-view', rule }); }
   // Handlers reais de "link" e "register" estão em openLinkModalReal / openRegisterModalReal abaixo.
@@ -526,38 +536,34 @@ export default function AdminIgnoredItems() {
     setFormLoading(false);
   }
 
-  // Aba "Ocultos" — chamadas reais
-  async function saveHideRule(e) {
-    e.preventDefault();
-    setFormError(null);
-    if (!hideForm.rawDescription.trim() || !hideForm.reason.trim()) {
-      setFormError('Preencha a descrição e o motivo.');
-      return;
-    }
-    setFormLoading(true);
-    try {
-      await createIgnoredDavItem(hideForm);
-      setFeedback('Regra de ocultação criada. Próximos DAVs compatíveis serão ocultados.');
-      closeModal();
-      reloadRules();
-    } catch (err) {
-      setFormError(err.message || 'Erro ao ocultar item');
-    } finally {
-      setFormLoading(false);
-    }
-  }
-
-  async function confirmUnhide() {
+  async function confirmToggleRuleStatus() {
     if (!modal?.rule) return;
     setFormLoading(true);
     try {
-      await deactivateIgnoredDavItem(modal.rule.id);
-      setFeedback('Regra desativada. Ela não será aplicada nos próximos DAVs.');
+      await setIgnoredDavItemActive(modal.rule.id, !modal.rule.active);
+      setFeedback(modal.rule.active
+        ? 'Regra desativada. Ela não será aplicada em novos DAVs.'
+        : 'Regra ativada com sucesso.');
       closeModal();
       reloadRules();
     } catch (err) {
-      setFeedback(err.message || 'Erro ao desocultar item');
+      setFeedback(err.message || 'Erro ao alterar status da regra');
       closeModal();
+    }
+  }
+
+  async function confirmDeleteRule() {
+    if (!modal?.rule) return;
+    setFormLoading(true);
+    try {
+      await deleteIgnoredDavItem(modal.rule.id);
+      setFeedback('Regra apagada com sucesso.');
+      closeModal();
+      reloadRules();
+    } catch (err) {
+      setFormError(err.message || 'Erro ao apagar regra');
+    } finally {
+      setFormLoading(false);
     }
   }
 
@@ -574,13 +580,18 @@ export default function AdminIgnoredItems() {
         matchType: ruleForm.type,
         reason:    ruleForm.reason.trim(),
       };
-      if (ruleForm.type.startsWith('SKU')) payload.rawSku = ruleForm.value.trim();
-      else if (ruleForm.type.startsWith('MANUFACTURER_REFERENCE')) payload.manufacturerReference = ruleForm.value.trim();
-      else if (ruleForm.type === 'MANUFACTURER_NAME') payload.manufacturerName = ruleForm.value.trim();
+      if (ruleForm.type === 'MANUFACTURER_NAME' || ruleForm.type === 'MANUFACTURER_NAME_CONTAINS') {
+        payload.manufacturerName = ruleForm.value.trim();
+      }
       else payload.rawDescription = ruleForm.value.trim();
 
-      await createIgnoredDavItem(payload);
-      setFeedback('Regra de ocultação criada e ativa para os próximos DAVs.');
+      if (modal?.rule) {
+        await updateIgnoredDavItem(modal.rule.id, payload);
+        setFeedback('Regra editada com sucesso.');
+      } else {
+        await createIgnoredDavItem(payload);
+        setFeedback('Regra de ocultação criada e ativa para os próximos DAVs.');
+      }
       closeModal();
       reloadRules();
     } catch (err) {
@@ -700,11 +711,6 @@ export default function AdminIgnoredItems() {
           <p>Gerencie itens ocultos, regras reais de ocultação e itens DAV não vinculados.</p>
         </div>
         <div className="hero-actions">
-          {tab === 'hidden' && (
-            <button className="btn btn-primary" type="button" onClick={() => openHideModal()}>
-              + Ocultar novo item
-            </button>
-          )}
           {tab === 'rules' && (
             <button className="btn btn-primary" type="button" onClick={() => openRuleModal()}>
               + Nova regra de ocultação
@@ -811,7 +817,9 @@ export default function AdminIgnoredItems() {
           <RulesList
             rules={filteredRulesPattern}
             onView={openRuleViewModal}
-            onDeactivate={openUnhideModal}
+            onEdit={openRuleEditModal}
+            onToggle={(rule) => setModal({ type: 'toggle-rule', rule })}
+            onDelete={(rule) => setModal({ type: 'delete-rule', rule })}
           />
         )}
 
@@ -823,7 +831,7 @@ export default function AdminIgnoredItems() {
             onRegister={openRegisterModalReal}
             onHide={openHideUnlinkedModal}
             onCreateRule={(item) => openRuleModal({
-              type: 'DESCRIPTION_CONTAINS',
+              type: 'NAME_CONTAINS',
               value: item.rawDescription.split(' ').slice(0, 2).join(' '),
             })}
           />
@@ -833,42 +841,6 @@ export default function AdminIgnoredItems() {
       {/* Modais */}
       {modal && (
         <ModalOverlay onClose={closeModal}>
-          {modal.type === 'hide' && (
-            <ModalCard title="Ocultar item no picking"
-              subtitle="O item não irá para o estoquista, mas continuará registrado para auditoria."
-              onClose={closeModal}>
-              <form className="ignored-form" onSubmit={saveHideRule}>
-                <div className="ignored-form-grid">
-                  <label>
-                    <span>SKU / Código (opcional)</span>
-                    <input value={hideForm.rawSku}
-                      onChange={(e) => setHideForm({ ...hideForm, rawSku: e.target.value })}
-                      placeholder="Ex: 00000000000308" />
-                  </label>
-                  <label className="ignored-form-wide">
-                    <span>Descrição do item</span>
-                    <input value={hideForm.rawDescription}
-                      onChange={(e) => setHideForm({ ...hideForm, rawDescription: e.target.value })}
-                      placeholder="Ex: FURACAO BROCA 3MM" />
-                  </label>
-                  <label className="ignored-form-wide">
-                    <span>Motivo da ocultação</span>
-                    <textarea rows="3" value={hideForm.reason}
-                      onChange={(e) => setHideForm({ ...hideForm, reason: e.target.value })}
-                      placeholder="Ex: Serviço da fábrica, não exige separação física" />
-                  </label>
-                </div>
-                {formError && <div className="ignored-form-error">{formError}</div>}
-                <div className="ignored-modal-foot" style={{ marginTop: 16 }}>
-                  <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
-                  <button className="btn btn-primary" type="submit" disabled={formLoading}>
-                    {formLoading ? 'Salvando…' : 'Ocultar no picking'}
-                  </button>
-                </div>
-              </form>
-            </ModalCard>
-          )}
-
           {modal.type === 'view' && (
             <ModalCard title="Detalhes do item oculto"
               subtitle={`DAV ${modal.item.davNumber ?? '—'} · ${modal.item.rawDescription ?? '—'}`}
@@ -892,28 +864,52 @@ export default function AdminIgnoredItems() {
             </ModalCard>
           )}
 
-          {modal.type === 'unhide' && (
-            <ModalCard title="Desativar regra?"
-              subtitle="A regra não será aplicada nos próximos DAVs. Ocorrências já registradas continuam no histórico."
+          {modal.type === 'toggle-rule' && (
+            <ModalCard title={modal.rule.active ? 'Desativar regra?' : 'Ativar regra?'}
+              subtitle={modal.rule.active
+                ? 'A regra não será aplicada nos próximos DAVs. Ocorrências já registradas continuam no histórico.'
+                : 'A regra voltará a ser aplicada em novos DAVs.'}
               onClose={closeModal}>
               <div className="ignored-modal-body">
                 <div className="ignored-confirm-box">
                   <strong>{getRuleValue(modal.rule)}</strong>
-                  <p>Após desativar, novos itens compatíveis deixam de ser ocultados automaticamente.</p>
+                  <p>{modal.rule.active
+                    ? 'Após desativar, novos itens compatíveis deixam de ser ocultados automaticamente.'
+                    : 'Após ativar, novos itens compatíveis serão ocultados automaticamente.'}</p>
                 </div>
               </div>
               <div className="ignored-modal-foot">
                 <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
-                <button className="btn btn-danger" type="button" onClick={confirmUnhide} disabled={formLoading}>
-                  {formLoading ? 'Desativando…' : 'Desativar regra'}
+                <button className="btn btn-primary" type="button" onClick={confirmToggleRuleStatus} disabled={formLoading}>
+                  {formLoading ? 'Salvando…' : (modal.rule.active ? 'Desativar regra' : 'Ativar regra')}
+                </button>
+              </div>
+            </ModalCard>
+          )}
+
+          {modal.type === 'delete-rule' && (
+            <ModalCard title="Tem certeza que deseja apagar esta regra de ocultação?"
+              subtitle="Essa ação impede que a regra seja aplicada em novos DAVs."
+              onClose={closeModal}>
+              <div className="ignored-modal-body">
+                <div className="ignored-confirm-box">
+                  <strong>{getRuleValue(modal.rule)}</strong>
+                  <p>A ocorrência histórica de itens já ocultados será preservada para auditoria.</p>
+                </div>
+                {formError && <div className="ignored-form-error">{formError}</div>}
+              </div>
+              <div className="ignored-modal-foot">
+                <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
+                <button className="btn btn-danger" type="button" onClick={confirmDeleteRule} disabled={formLoading}>
+                  {formLoading ? 'Apagando…' : 'Apagar regra'}
                 </button>
               </div>
             </ModalCard>
           )}
 
           {modal.type === 'rule' && (
-            <ModalCard title="Nova regra de ocultação"
-              subtitle="Oculte automaticamente itens que correspondam a um padrão nos próximos DAVs."
+            <ModalCard title={modal.rule ? 'Editar regra de ocultação' : 'Nova regra de ocultação'}
+              subtitle="Oculte automaticamente itens que correspondam a nome ou fabricante nos próximos DAVs."
               onClose={closeModal}>
               <form className="ignored-form" onSubmit={saveRule}>
                 <div className="ignored-form-grid">
@@ -953,7 +949,7 @@ export default function AdminIgnoredItems() {
                 <div className="ignored-modal-foot" style={{ marginTop: 16 }}>
                   <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
                   <button className="btn btn-primary" type="submit" disabled={formLoading}>
-                    {formLoading ? 'Criando…' : 'Criar regra'}
+                    {formLoading ? 'Salvando…' : (modal.rule ? 'Salvar regra' : 'Criar regra')}
                   </button>
                 </div>
               </form>
@@ -962,11 +958,11 @@ export default function AdminIgnoredItems() {
 
           {modal.type === 'rule-view' && (
             <ModalCard title="Detalhes da regra"
-              subtitle={`${RULE_TYPE_LABEL[modal.rule.matchType] ?? modal.rule.matchType}: "${getRuleValue(modal.rule)}"`}
+              subtitle={`${getRuleLabel(modal.rule)}: "${getRuleValue(modal.rule)}"`}
               onClose={closeModal}>
               <div className="ignored-modal-body">
                 <div className="ignored-rule-grid">
-                  <span>Tipo</span><strong>{RULE_TYPE_LABEL[modal.rule.matchType] ?? modal.rule.matchType}</strong>
+                  <span>Tipo</span><strong>{getRuleLabel(modal.rule)}</strong>
                   <span>Valor</span><strong><span className="ignored-code-ref">{getRuleValue(modal.rule)}</span></strong>
                   <span>Motivo</span><strong>{modal.rule.reason}</strong>
                   <span>Status</span><strong>{modal.rule.active ? 'Ativa' : 'Inativa'}</strong>
@@ -976,11 +972,19 @@ export default function AdminIgnoredItems() {
               </div>
               <div className="ignored-modal-foot">
                 <button className="btn btn-secondary" type="button" onClick={closeModal}>Fechar</button>
-                {modal.rule.active && (
-                  <button className="btn btn-primary" type="button" onClick={() => setModal({ type: 'unhide', rule: modal.rule })}>
-                    Desativar regra
+                {isSupportedRule(modal.rule) && (
+                  <button className="btn btn-secondary" type="button" onClick={() => openRuleEditModal(modal.rule)}>
+                    Editar
                   </button>
                 )}
+                {isSupportedRule(modal.rule) && (
+                  <button className="btn btn-primary" type="button" onClick={() => setModal({ type: 'toggle-rule', rule: modal.rule })}>
+                    {modal.rule.active ? 'Desativar regra' : 'Ativar regra'}
+                  </button>
+                )}
+                <button className="btn btn-danger" type="button" onClick={() => setModal({ type: 'delete-rule', rule: modal.rule })}>
+                  Apagar
+                </button>
               </div>
             </ModalCard>
           )}

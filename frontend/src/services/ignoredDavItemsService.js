@@ -15,17 +15,13 @@ export async function listIgnoredDavItems({ includeInactive = false } = {}) {
 }
 
 export async function createIgnoredDavItem({
-  rawSku,
   rawDescription,
-  manufacturerReference,
   manufacturerName,
   matchType,
   reason,
 }) {
   const res = await api.post('/ignored-dav-items', {
-    rawSku,
     rawDescription,
-    manufacturerReference,
     manufacturerName,
     matchType,
     reason,
@@ -35,9 +31,33 @@ export async function createIgnoredDavItem({
   return data;
 }
 
-export async function deactivateIgnoredDavItem(id) {
+export async function updateIgnoredDavItem(id, {
+  rawDescription,
+  manufacturerName,
+  matchType,
+  reason,
+}) {
+  const res = await api.put(`/ignored-dav-items/${id}`, {
+    rawDescription,
+    manufacturerName,
+    matchType,
+    reason,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(extractError(res, data, 'Erro ao editar regra'));
+  return data;
+}
+
+export async function setIgnoredDavItemActive(id, active) {
+  const res = await api.patch(`/ignored-dav-items/${id}/status`, { active });
+  const data = await res.json();
+  if (!res.ok) throw new Error(extractError(res, data, 'Erro ao alterar status da regra'));
+  return data;
+}
+
+export async function deleteIgnoredDavItem(id) {
   const res = await api.delete(`/ignored-dav-items/${id}`);
   const data = await res.json();
-  if (!res.ok) throw new Error(extractError(res, data, 'Erro ao desativar regra'));
+  if (!res.ok) throw new Error(extractError(res, data, 'Erro ao apagar regra'));
   return data;
 }

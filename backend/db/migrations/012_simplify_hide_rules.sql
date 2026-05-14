@@ -1,12 +1,14 @@
 -- ============================================================
--- Migration 011 — Regras de ocultação por nome do item/produto
+-- Migration 012 — Simplificar regras de ocultação
 --
--- Adiciona NAME e NAME_CONTAINS como match_types reais.
--- O padrão textual continua armazenado em raw_description /
--- normalized_description, porque "nome" é um critério textual do item.
--- Durante o roteamento, NAME_* compara contra a descrição do DAV e,
--- quando houver produto cadastrado, também contra products.name.
+-- Regras novas passam a ser apenas por nome ou fabricante.
+-- Mantemos match_types antigos na constraint para não quebrar dados
+-- existentes, mas o backend não permite criar novas regras antigas.
+-- deleted_at permite "apagar" uma regra sem perder auditoria.
 -- ============================================================
+
+ALTER TABLE ignored_dav_items
+  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
 ALTER TABLE ignored_dav_items
   DROP CONSTRAINT IF EXISTS ignored_dav_items_match_type_check;
@@ -27,3 +29,6 @@ ALTER TABLE ignored_dav_items
     'MANUFACTURER_NAME',
     'MANUFACTURER_NAME_CONTAINS'
   ));
+
+CREATE INDEX IF NOT EXISTS idx_ignored_dav_items_deleted_at
+  ON ignored_dav_items (deleted_at);

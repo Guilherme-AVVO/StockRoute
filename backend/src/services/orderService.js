@@ -70,7 +70,7 @@ export async function resolveDavItemRouting(item) {
       rawDescription:        item.rawDescription,
       productName:           product.name,
       manufacturerReference: item.manufacturerReference,
-      manufacturerName:      item.manufacturerName,
+      manufacturerName:      item.manufacturerName ?? product.manufacturer_name,
     });
 
     if (productNameIgnored.ignored) {

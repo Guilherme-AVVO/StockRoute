@@ -29,9 +29,12 @@ ALTER TABLE ignored_dav_items
     'SKU_CONTAINS',
     'DESCRIPTION_CONTAINS',
     'SKU_PREFIX',
+    'NAME',
+    'NAME_CONTAINS',
     'MANUFACTURER_REFERENCE',
     'MANUFACTURER_REFERENCE_CONTAINS',
-    'MANUFACTURER_NAME'
+    'MANUFACTURER_NAME',
+    'MANUFACTURER_NAME_CONTAINS'
   ));
 
 -- 3) Substitui CHECK do lookup_required para aceitar regras com manufacturer fields
