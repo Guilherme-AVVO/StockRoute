@@ -7,6 +7,8 @@
 //   - SKU_CONTAINS                     (normalized_sku do item contém o pattern)
 //   - DESCRIPTION_CONTAINS             (normalized_description do item contém o pattern)
 //   - SKU_PREFIX                       (normalized_sku do item começa com o pattern)
+//   - NAME                             (descrição do DAV ou nome do produto igual ao pattern)
+//   - NAME_CONTAINS                    (descrição do DAV ou nome do produto contém o pattern)
 //   - MANUFACTURER_REFERENCE           (igual à ref. fabricante, case-insensitive)
 //   - MANUFACTURER_REFERENCE_CONTAINS  (ref. fabricante do item contém o pattern)
 //   - MANUFACTURER_NAME                (igual ao nome do fabricante, case-insensitive)
@@ -25,6 +27,8 @@ const ALLOWED_MATCH_TYPES = [
   'SKU_CONTAINS',
   'DESCRIPTION_CONTAINS',
   'SKU_PREFIX',
+  'NAME',
+  'NAME_CONTAINS',
   'MANUFACTURER_REFERENCE',
   'MANUFACTURER_REFERENCE_CONTAINS',
   'MANUFACTURER_NAME',
@@ -39,6 +43,8 @@ const MATCH_TYPE_REQUIRES_FIELD = {
   SKU_CONTAINS:                     ['rawSku'],
   DESCRIPTION_CONTAINS:             ['rawDescription'],
   SKU_PREFIX:                       ['rawSku'],
+  NAME:                             ['rawDescription'],
+  NAME_CONTAINS:                    ['rawDescription'],
   MANUFACTURER_REFERENCE:           ['manufacturerReference'],
   MANUFACTURER_REFERENCE_CONTAINS: ['manufacturerReference'],
   MANUFACTURER_NAME:                ['manufacturerName'],
@@ -136,10 +142,11 @@ export async function deactivateIgnoredDavItem(id) {
 // Verifica se um item extraído do DAV cai em alguma regra ativa.
 // Considera SKU, descrição, referência do fabricante e nome do fabricante
 // — exatos, CONTAINS ou PREFIX, conforme o matchType da regra.
-export async function shouldIgnoreDavItem({ rawSku, rawDescription, manufacturerReference, manufacturerName }) {
+export async function shouldIgnoreDavItem({ rawSku, rawDescription, productName, manufacturerReference, manufacturerName }) {
   const rule = await findIgnoredRuleForItem({
     normalizedSku:         normalizeSku(rawSku),
     normalizedDescription: normalizeDescription(rawDescription),
+    normalizedProductName: normalizeDescription(productName),
     manufacturerReference,
     manufacturerName,
   });

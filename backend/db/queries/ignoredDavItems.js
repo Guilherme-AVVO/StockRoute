@@ -23,9 +23,16 @@ const ignoredDavItemFields = sql`
 //
 // Normalização: o item já chega com normalized_sku/description.
 // Para manufacturer comparamos em UPPER para ser case-insensitive.
-export async function findIgnoredRuleForItem({ normalizedSku, normalizedDescription, manufacturerReference, manufacturerName }) {
+export async function findIgnoredRuleForItem({
+  normalizedSku,
+  normalizedDescription,
+  normalizedProductName,
+  manufacturerReference,
+  manufacturerName,
+}) {
   const sku  = normalizedSku           ?? '';
   const desc = normalizedDescription   ?? '';
+  const pname = normalizedProductName  ?? '';
   const mref = (manufacturerReference  ?? '').toString().trim().toUpperCase();
   const mnam = (manufacturerName       ?? '').toString().trim().toUpperCase();
 
@@ -51,6 +58,18 @@ export async function findIgnoredRuleForItem({ normalizedSku, normalizedDescript
               AND ${sku !== ''}
               AND normalized_sku IS NOT NULL
               AND LOWER(${sku}) LIKE LOWER(normalized_sku) || '%')
+        OR (match_type = 'NAME'
+              AND normalized_description IS NOT NULL
+              AND (
+                (normalized_description = ${desc}  AND ${desc  !== ''})
+                OR (normalized_description = ${pname} AND ${pname !== ''})
+              ))
+        OR (match_type = 'NAME_CONTAINS'
+              AND normalized_description IS NOT NULL
+              AND (
+                (${desc  !== ''} AND POSITION(LOWER(normalized_description) IN LOWER(${desc})) > 0)
+                OR (${pname !== ''} AND POSITION(LOWER(normalized_description) IN LOWER(${pname})) > 0)
+              ))
         OR (match_type = 'MANUFACTURER_REFERENCE'
               AND ${mref !== ''}
               AND manufacturer_reference IS NOT NULL

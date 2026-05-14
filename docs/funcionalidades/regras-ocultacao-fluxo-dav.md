@@ -6,8 +6,9 @@ Para cada item extraído do DAV, o backend decide o destino nesta ordem:
 
 1. Verifica regras ativas em `ignored_dav_items`.
 2. Se alguma regra casar, registra a ocorrência como `HIDDEN` em `unlinked_dav_items`, salva `ignored_rule_id` e motivo, e não cria `order_items`.
-3. Se não houver regra e existir produto cadastrado, cria `order_items` para revisão e picking.
-4. Se não houver regra nem produto cadastrado, registra em `unlinked_dav_items` com `status='PENDING'`.
+3. Se não houver regra por dados do DAV e existir produto cadastrado, verifica novamente regras por nome considerando `products.name`.
+4. Se não houver regra e existir produto cadastrado, cria `order_items` para revisão e picking.
+5. Se não houver regra nem produto cadastrado, registra em `unlinked_dav_items` com `status='PENDING'`.
 
 A função central dessa decisão é `resolveDavItemRouting`, em `backend/src/services/orderService.js`.
 
@@ -23,7 +24,13 @@ Itens ocultos por regra não aparecem nessa aba.
 
 ## Quando vai para ocultos
 
-O item vai para "Ocultos" quando alguma regra ativa casa por SKU, descrição, prefixo, referência do fabricante ou fabricante, conforme `match_type`.
+O item vai para "Ocultos" quando alguma regra ativa casa por SKU, descrição, nome, prefixo, referência do fabricante ou fabricante, conforme `match_type`.
+
+Para regra por nome:
+
+- `NAME_CONTAINS` compara o valor informado contra a descrição extraída do DAV.
+- Quando o produto já existe, `NAME_CONTAINS` também compara contra `products.name` antes de enviar para revisão.
+- `NAME` faz a comparação exata nesses mesmos campos textuais.
 
 Nesse caso:
 

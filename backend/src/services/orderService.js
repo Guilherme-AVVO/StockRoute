@@ -65,6 +65,26 @@ export async function resolveDavItemRouting(item) {
 
   const product = await findProductForDavItem(item);
   if (product) {
+    const productNameIgnored = await shouldIgnoreDavItem({
+      rawSku:                item.rawSku,
+      rawDescription:        item.rawDescription,
+      productName:           product.name,
+      manufacturerReference: item.manufacturerReference,
+      manufacturerName:      item.manufacturerName,
+    });
+
+    if (productNameIgnored.ignored) {
+      return {
+        route:         'HIDDEN',
+        productId:     null,
+        ignoredRuleId: productNameIgnored.ruleId,
+        ignoredReason: productNameIgnored.reason,
+        matchType:     productNameIgnored.matchType,
+        matchedValue:  productNameIgnored.matchedValue,
+        status:        'HIDDEN',
+      };
+    }
+
     return {
       route:         'LINKED',
       productId:     product.id,

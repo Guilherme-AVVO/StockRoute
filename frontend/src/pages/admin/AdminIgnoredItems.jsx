@@ -27,9 +27,11 @@ const TABS = [
 ];
 
 const RULE_TYPES = [
+  { value: 'NAME_CONTAINS',        label: 'Nome contém'         },
   { value: 'DESCRIPTION_CONTAINS', label: 'Descrição contém'    },
   { value: 'SKU_CONTAINS',         label: 'SKU contém'          },
   { value: 'SKU_PREFIX',           label: 'Prefixo do SKU'      },
+  { value: 'NAME',                 label: 'Nome exato'          },
   { value: 'SKU',                  label: 'SKU exato'           },
   { value: 'DESCRIPTION',          label: 'Descrição exata'     },
   { value: 'MANUFACTURER_REFERENCE', label: 'Referência exata'  },
@@ -40,7 +42,7 @@ const RULE_TYPES = [
 const RULE_TYPE_LABEL = Object.fromEntries(RULE_TYPES.map((r) => [r.value, r.label]));
 
 const EMPTY_HIDE_FORM = { rawSku: '', rawDescription: '', reason: '' };
-const EMPTY_RULE_FORM = { type: 'DESCRIPTION_CONTAINS', value: '', reason: '' };
+const EMPTY_RULE_FORM = { type: 'NAME_CONTAINS', value: '', reason: '' };
 
 // ============================================================
 // Utilitários
