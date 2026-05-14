@@ -7,6 +7,7 @@ const ITEM_STATUS_LABEL = {
   PICKED:  { label: 'Coletado',             cls: 'found' },
   PARTIAL: { label: 'Parcial',              cls: 'found' },
   MISSING: { label: 'Não encontrado',       cls: 'unlinked' },
+  HIDDEN:  { label: 'Oculto por regra',     cls: 'ignored' },
 };
 
 function ReviewStatusBadge({ status }) {
@@ -29,6 +30,7 @@ export default function AdminReviews({ onNavigate }) {
   const [feedback,       setFeedback]       = useState(null);
   const [search,         setSearch]         = useState('');
   const [modal,          setModal]          = useState(null);
+  const [showHiddenItems, setShowHiddenItems] = useState(false);
 
   const loadPending = useCallback(() => {
     setLoadingOrders(true);
@@ -48,11 +50,11 @@ export default function AdminReviews({ onNavigate }) {
   useEffect(() => {
     if (!selectedOrderId) { setOrderDetail(null); return; }
     setLoadingDetail(true);
-    getOrder(selectedOrderId)
+    getOrder(selectedOrderId, { includeHidden: showHiddenItems })
       .then(setOrderDetail)
       .catch(() => setOrderDetail(null))
       .finally(() => setLoadingDetail(false));
-  }, [selectedOrderId]);
+  }, [selectedOrderId, showHiddenItems]);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -61,6 +63,18 @@ export default function AdminReviews({ onNavigate }) {
       !q || item.product.sku.toLowerCase().includes(q) || item.product.name.toLowerCase().includes(q)
     );
   }, [orderDetail, search]);
+
+  const filteredHiddenItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!showHiddenItems || !orderDetail?.hiddenItems) return [];
+    return orderDetail.hiddenItems.filter((item) =>
+      !q
+      || (item.rawSku ?? '').toLowerCase().includes(q)
+      || (item.rawDescription ?? '').toLowerCase().includes(q)
+      || (item.manufacturerReference ?? '').toLowerCase().includes(q)
+      || (item.manufacturerName ?? '').toLowerCase().includes(q)
+    );
+  }, [orderDetail, search, showHiddenItems]);
 
   async function handlePublish() {
     if (!selectedOrderId) return;
@@ -81,6 +95,7 @@ export default function AdminReviews({ onNavigate }) {
 
   const selectedMeta = pendingOrders.find((o) => o.id === selectedOrderId);
   const totalItems   = orderDetail?.items?.length ?? 0;
+  const hiddenItemsCount = orderDetail?.hiddenItems?.length ?? 0;
 
   return (
     <div className="reviews-page">
@@ -145,6 +160,7 @@ export default function AdminReviews({ onNavigate }) {
                 <div className="reviews-summary-item"><span>Cliente</span><strong>{selectedMeta?.customerName ?? '—'}</strong></div>
                 <div className="reviews-summary-item"><span>Importado em</span><strong>{formatDate(selectedMeta?.createdAt)}</strong></div>
                 <div className="reviews-summary-item"><span>Itens vinculados</span><strong>{totalItems}</strong></div>
+                <div className="reviews-summary-item"><span>Itens ocultos</span><strong>{hiddenItemsCount}</strong></div>
                 <div className="reviews-summary-item">
                   <span>Status</span>
                   <strong className="reviews-draft-badge">AGUARDANDO REVISÃO</strong>
@@ -171,6 +187,17 @@ export default function AdminReviews({ onNavigate }) {
                 <p>
                   Apenas itens vinculados ao catálogo entram na lista do estoquista.
                   Itens ignorados e sem vínculo ficam registrados para auditoria.
+                </p>
+                <label className="reviews-hidden-toggle">
+                  <input
+                    type="checkbox"
+                    checked={showHiddenItems}
+                    onChange={(e) => setShowHiddenItems(e.target.checked)}
+                  />
+                  <span>Mostrar itens ocultos</span>
+                </label>
+                <p className="reviews-hidden-help">
+                  Itens ocultos não vão para o picking, mas permanecem registrados para auditoria.
                 </p>
               </div>
             </aside>
@@ -249,6 +276,46 @@ export default function AdminReviews({ onNavigate }) {
             )}
           </section>
 
+          {showHiddenItems && (
+            <section className="card reviews-hidden-card">
+              <div className="reviews-hidden-head">
+                <div>
+                  <h2>Itens ocultos deste pedido</h2>
+                  <p>Ocultados por regra antes do vínculo com produto e fora da lista do estoquista.</p>
+                </div>
+                <ReviewStatusBadge status="HIDDEN" />
+              </div>
+
+              {loadingDetail ? (
+                <div className="reviews-feedback">Carregando itens ocultos…</div>
+              ) : filteredHiddenItems.length === 0 ? (
+                <div className="reviews-hidden-empty">Nenhum item oculto encontrado para este filtro.</div>
+              ) : (
+                <div className="reviews-hidden-list">
+                  {filteredHiddenItems.map((item) => (
+                    <article className="reviews-hidden-item" key={item.id}>
+                      <div>
+                        <span className="dav-id">{item.rawSku ?? item.manufacturerReference ?? '—'}</span>
+                        <strong>{item.rawDescription}</strong>
+                        <p>
+                          {item.ignoredReason ?? 'Sem motivo informado'}
+                          {item.ruleMatchType ? ` · Regra: ${item.ruleMatchType}` : ''}
+                        </p>
+                      </div>
+                      <div className="reviews-hidden-meta">
+                        <span>{item.quantity} {item.unit ?? ''}</span>
+                        <ReviewStatusBadge status="HIDDEN" />
+                        <button className="review-action" type="button" onClick={() => setModal({ item, hidden: true })}>
+                          Ver regra
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
           <section className="card reviews-footer-actions">
             <div>
               <h2>{totalItems} {totalItems === 1 ? 'item pronto' : 'itens prontos'} para picking</h2>
@@ -272,7 +339,11 @@ export default function AdminReviews({ onNavigate }) {
             <div className="review-modal-head">
               <div>
                 <h2>Detalhes do item</h2>
-                <p>{modal.item.product.sku} · {modal.item.product.name}</p>
+                <p>
+                  {modal.hidden
+                    ? `${modal.item.rawSku ?? '—'} · ${modal.item.rawDescription ?? '—'}`
+                    : `${modal.item.product.sku} · ${modal.item.product.name}`}
+                </p>
               </div>
               <button className="modal-close" type="button" onClick={() => setModal(null)} aria-label="Fechar modal">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -282,11 +353,26 @@ export default function AdminReviews({ onNavigate }) {
             </div>
             <div className="review-modal-body">
               <div className="review-rule-grid">
-                <span>SKU</span><strong>{modal.item.product.sku}</strong>
-                <span>Produto</span><strong>{modal.item.product.name}</strong>
-                <span>Unidade</span><strong>{modal.item.product.unit}</strong>
-                <span>Quantidade</span><strong>{modal.item.quantity}</strong>
-                <span>Status</span><ReviewStatusBadge status={modal.item.status} />
+                {modal.hidden ? (
+                  <>
+                    <span>SKU DAV</span><strong>{modal.item.rawSku ?? '—'}</strong>
+                    <span>Descrição</span><strong>{modal.item.rawDescription ?? '—'}</strong>
+                    <span>Ref. fabricante</span><strong>{modal.item.manufacturerReference ?? '—'}</strong>
+                    <span>Fabricante</span><strong>{modal.item.manufacturerName ?? '—'}</strong>
+                    <span>Quantidade</span><strong>{modal.item.quantity} {modal.item.unit ?? ''}</strong>
+                    <span>Regra</span><strong>{modal.item.ruleMatchType ?? '—'}</strong>
+                    <span>Motivo</span><strong>{modal.item.ignoredReason ?? '—'}</strong>
+                    <span>Status</span><ReviewStatusBadge status="HIDDEN" />
+                  </>
+                ) : (
+                  <>
+                    <span>SKU</span><strong>{modal.item.product.sku}</strong>
+                    <span>Produto</span><strong>{modal.item.product.name}</strong>
+                    <span>Unidade</span><strong>{modal.item.product.unit}</strong>
+                    <span>Quantidade</span><strong>{modal.item.quantity}</strong>
+                    <span>Status</span><ReviewStatusBadge status={modal.item.status} />
+                  </>
+                )}
               </div>
             </div>
             <div className="review-modal-foot">

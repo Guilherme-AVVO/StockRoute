@@ -34,8 +34,9 @@ export async function listOrders({ status, search } = {}) {
   return data;
 }
 
-export async function getOrder(id) {
-  const res = await api.get(`/orders/${id}`);
+export async function getOrder(id, { includeHidden = false } = {}) {
+  const query = includeHidden ? '?includeHidden=true' : '';
+  const res = await api.get(`/orders/${id}${query}`);
   const data = await res.json();
   if (!res.ok) throw new Error(extractError(res, data, 'Pedido não encontrado'));
   return data;

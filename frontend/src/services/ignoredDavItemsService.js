@@ -14,8 +14,22 @@ export async function listIgnoredDavItems({ includeInactive = false } = {}) {
   return data;
 }
 
-export async function createIgnoredDavItem({ rawSku, rawDescription, reason }) {
-  const res = await api.post('/ignored-dav-items', { rawSku, rawDescription, reason });
+export async function createIgnoredDavItem({
+  rawSku,
+  rawDescription,
+  manufacturerReference,
+  manufacturerName,
+  matchType,
+  reason,
+}) {
+  const res = await api.post('/ignored-dav-items', {
+    rawSku,
+    rawDescription,
+    manufacturerReference,
+    manufacturerName,
+    matchType,
+    reason,
+  });
   const data = await res.json();
   if (!res.ok) throw new Error(extractError(res, data, 'Erro ao criar regra'));
   return data;

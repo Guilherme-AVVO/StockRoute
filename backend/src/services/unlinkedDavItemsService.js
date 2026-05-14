@@ -5,6 +5,7 @@ import {
   listUnlinkedDavItems as listUnlinkedQuery,
   findUnlinkedDavItemById,
   updateUnlinkedDavItemStatus,
+  markUnlinkedDavItemHidden,
 } from '../../db/queries/unlinkedDavItems.js';
 import {
   findProductById,
@@ -31,6 +32,9 @@ function toDto(row) {
     manufacturerName:      row.manufacturer_name ?? null,
     status:                row.status,
     productId:             row.product_id ?? null,
+    ignoredRuleId:         row.ignored_rule_id ?? null,
+    ignoredReason:         row.resolution_note ?? row.rule_reason ?? null,
+    ruleMatchType:         row.rule_match_type ?? null,
     resolutionNote:        row.resolution_note ?? null,
     resolvedAt:            row.resolved_at ?? null,
     resolvedBy:            row.resolved_by ?? null,
@@ -152,16 +156,15 @@ export async function hideUnlinkedItem(itemId, reason, userId) {
     throw { status: 400, message: 'Motivo da ocultação é obrigatório' };
   }
 
-  await createIgnoredDavItem({
+  const rule = await createIgnoredDavItem({
     rawSku:         item.raw_sku,
     rawDescription: item.raw_description,
     reason:         String(reason).trim(),
     createdBy:      userId,
   });
 
-  const updated = await updateUnlinkedDavItemStatus(itemId, {
-    status:         'HIDDEN',
-    productId:      null,
+  const updated = await markUnlinkedDavItemHidden(itemId, {
+    ignoredRuleId:  rule.id,
     resolutionNote: String(reason).trim(),
     resolvedBy:     userId,
   });

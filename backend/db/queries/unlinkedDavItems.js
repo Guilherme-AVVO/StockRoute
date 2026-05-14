@@ -126,6 +126,26 @@ export async function updateUnlinkedDavItemStatus(id, { status, productId = null
   return rows[0] ?? null;
 }
 
+export async function markUnlinkedDavItemHidden(id, { ignoredRuleId, resolutionNote, resolvedBy }) {
+  const rows = await sql`
+    UPDATE unlinked_dav_items
+    SET status          = 'HIDDEN',
+        product_id      = NULL,
+        ignored_rule_id = ${ignoredRuleId},
+        resolution_note = ${resolutionNote},
+        resolved_at     = NOW(),
+        resolved_by     = ${resolvedBy},
+        updated_at      = NOW()
+    WHERE id = ${id}
+    RETURNING id, order_id, raw_sku, raw_description, quantity, unit,
+              manufacturer_reference, manufacturer_name,
+              status, product_id, ignored_rule_id,
+              resolution_note, resolved_at, resolved_by,
+              created_at, updated_at
+  `;
+  return rows[0] ?? null;
+}
+
 // Conta itens não vinculados pendentes — útil para dashboard.
 export async function countPendingUnlinkedDavItems() {
   const rows = await sql`

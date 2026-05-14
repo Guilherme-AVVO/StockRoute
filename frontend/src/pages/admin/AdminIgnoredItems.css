@@ -751,20 +751,6 @@
   margin-top: 4px;
 }
 
-/* Aviso visual sobre dados mockados (transparência para devs) */
-.ignored-mock-warning {
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: #fff8e1;
-  color: #6a4a00;
-  border: 1px dashed #e0c060;
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 /* Modal de regra de ocultação */
 .ignored-rule-type-grid {
   display: grid;

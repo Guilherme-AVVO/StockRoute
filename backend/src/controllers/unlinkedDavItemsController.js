@@ -34,10 +34,10 @@ export async function linkProductController(req, res, next) {
 
 export async function createProductController(req, res, next) {
   try {
-    const { sku, name, unit, imageUrl } = req.body ?? {};
+    const { sku, name, unit, imageUrl, manufacturerReference, manufacturerName } = req.body ?? {};
     const result = await registerAsNewProduct(
       req.params.id,
-      { sku, name, unit, imageUrl },
+      { sku, name, unit, imageUrl, manufacturerReference, manufacturerName },
       req.user.id,
     );
     return res.status(201).json(result);

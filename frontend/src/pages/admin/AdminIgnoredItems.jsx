@@ -1,7 +1,5 @@
 // Página ADMIN — Itens ignorados no picking.
-// Centraliza: itens ocultos manualmente (API real), regras de ocultação por padrão
-// de nome/SKU (MOCK — backend ainda não suporta padrão) e itens não vinculados
-// vindos do DAV (API real, tabela unlinked_dav_items).
+// Centraliza ocorrências ocultas, regras reais de ocultação e itens DAV não vinculados.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatCard from '../../components/admin/StatCard.jsx';
 import {
@@ -28,58 +26,21 @@ const TABS = [
   { id: 'unlinked',  label: 'Não vinculados' },
 ];
 
-// Tipos de regra suportados visualmente.
-// Backend ainda não tem match por padrão — isso é UI/MOCK por enquanto.
 const RULE_TYPES = [
-  { value: 'NAME_CONTAINS',        label: 'Nome contém'         },
-  { value: 'SKU_CONTAINS',         label: 'SKU contém'          },
   { value: 'DESCRIPTION_CONTAINS', label: 'Descrição contém'    },
+  { value: 'SKU_CONTAINS',         label: 'SKU contém'          },
   { value: 'SKU_PREFIX',           label: 'Prefixo do SKU'      },
-  { value: 'CATEGORY',             label: 'Categoria/termo'     },
+  { value: 'SKU',                  label: 'SKU exato'           },
+  { value: 'DESCRIPTION',          label: 'Descrição exata'     },
+  { value: 'MANUFACTURER_REFERENCE', label: 'Referência exata'  },
+  { value: 'MANUFACTURER_REFERENCE_CONTAINS', label: 'Referência contém' },
+  { value: 'MANUFACTURER_NAME',    label: 'Fabricante exato'    },
 ];
 
 const RULE_TYPE_LABEL = Object.fromEntries(RULE_TYPES.map((r) => [r.value, r.label]));
 
-// ============================================================
-// Dados mockados temporários — substituir quando houver API
-// ============================================================
-
-// MOCK: regras de ocultação por padrão.
-// Endpoint futuro sugerido: GET/POST/DELETE /hide-rules (ou expandir ignored_dav_items)
-const INITIAL_RULES = [
-  {
-    id:        'r1',
-    type:      'NAME_CONTAINS',
-    value:     'INST.',
-    reason:    'Ocultar itens de instalação vindos do DAV (não exigem separação física)',
-    active:    true,
-    createdAt: '2026-05-10T09:00:00Z',
-    appliedTo: 4,
-  },
-  {
-    id:        'r2',
-    type:      'SKU_PREFIX',
-    value:     '0000000000074',
-    reason:    'Itens de usinagem especial — fábrica, não vai para o estoquista',
-    active:    true,
-    createdAt: '2026-05-09T14:20:00Z',
-    appliedTo: 1,
-  },
-  {
-    id:        'r3',
-    type:      'NAME_CONTAINS',
-    value:     'CORTE',
-    reason:    'Serviço de corte — executado na fábrica',
-    active:    false,
-    createdAt: '2026-05-05T11:30:00Z',
-    appliedTo: 0,
-  },
-];
-
-// Itens não vinculados agora vêm de /unlinked-dav-items — sem mock.
-
 const EMPTY_HIDE_FORM = { rawSku: '', rawDescription: '', reason: '' };
-const EMPTY_RULE_FORM = { type: 'NAME_CONTAINS', value: '', reason: '' };
+const EMPTY_RULE_FORM = { type: 'DESCRIPTION_CONTAINS', value: '', reason: '' };
 
 // ============================================================
 // Utilitários
@@ -88,6 +49,16 @@ const EMPTY_RULE_FORM = { type: 'NAME_CONTAINS', value: '', reason: '' };
 function formatDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function getRuleValue(rule) {
+  return (
+    rule.rawSku
+    ?? rule.rawDescription
+    ?? rule.manufacturerReference
+    ?? rule.manufacturerName
+    ?? '—'
+  );
 }
 
 // Ícones SVG dos cards de resumo
@@ -145,7 +116,7 @@ function ModalCard({ title, subtitle, onClose, children }) {
 // Lista da aba "Ocultos" — API real
 // ============================================================
 
-function HiddenItemsList({ loading, items, onView, onUnhide }) {
+function HiddenItemsList({ loading, items, onView }) {
   if (loading) return <div className="ignored-empty"><p>Carregando…</p></div>;
 
   if (items.length === 0) {
@@ -165,30 +136,27 @@ function HiddenItemsList({ loading, items, onView, onUnhide }) {
       <table className="ignored-table">
         <thead>
           <tr>
+            <th>DAV</th>
             <th>Código/Ref.</th>
             <th>Descrição</th>
             <th>Motivo</th>
-            <th>Status</th>
+            <th>Origem</th>
             <th>Criado em</th>
             <th>Ações</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((rule) => (
-            <tr key={rule.id}>
-              <td><span className="ignored-code-ref">{rule.rawSku ?? '—'}</span></td>
-              <td><span className="ignored-description">{rule.rawDescription ?? '—'}</span></td>
-              <td><span className="ignored-reason">{rule.reason}</span></td>
-              <td><span className={`ignored-status ${rule.active ? 'active' : 'inactive'}`}>
-                {rule.active ? 'Oculto' : 'Desocultado'}
-              </span></td>
-              <td><span className="ignored-muted">{formatDate(rule.createdAt)}</span></td>
+          {items.map((item) => (
+            <tr key={item.id}>
+              <td><span className="dav-id">{item.davNumber ?? '—'}</span></td>
+              <td><span className="ignored-code-ref">{item.rawSku ?? item.manufacturerReference ?? '—'}</span></td>
+              <td><span className="ignored-description">{item.rawDescription ?? '—'}</span></td>
+              <td><span className="ignored-reason">{item.ignoredReason ?? item.resolutionNote ?? '—'}</span></td>
+              <td><span className="ignored-by-rule-badge">{item.ignoredRuleId ? 'Oculto por regra' : 'Oculto manualmente'}</span></td>
+              <td><span className="ignored-muted">{formatDate(item.createdAt)}</span></td>
               <td>
                 <div className="ignored-actions">
-                  <button type="button" onClick={() => onView(rule)}>Ver motivo</button>
-                  {rule.active && (
-                    <button type="button" onClick={() => onUnhide(rule)}>Desocultar</button>
-                  )}
+                  <button type="button" onClick={() => onView(item)}>Ver regra</button>
                 </div>
               </td>
             </tr>
@@ -197,30 +165,27 @@ function HiddenItemsList({ loading, items, onView, onUnhide }) {
       </table>
 
       <div className="ignored-mobile-list">
-        {items.map((rule) => (
-          <article className="ignored-mobile-card" key={rule.id}>
+        {items.map((item) => (
+          <article className="ignored-mobile-card" key={item.id}>
             <div className="ignored-mobile-head">
               <div>
-                <span className="ignored-code-ref">{rule.rawSku ?? '—'}</span>
-                <strong style={{ marginTop: 6 }}>{rule.rawDescription ?? '—'}</strong>
+                <span className="dav-id">DAV {item.davNumber ?? '—'}</span>
+                <strong style={{ marginTop: 6 }}>{item.rawDescription ?? '—'}</strong>
               </div>
-              <span className={`ignored-status ${rule.active ? 'active' : 'inactive'}`}>
-                {rule.active ? 'Oculto' : 'Desocultado'}
-              </span>
+              <span className="ignored-by-rule-badge">{item.ignoredRuleId ? 'Oculto por regra' : 'Oculto manualmente'}</span>
             </div>
             <div className="ignored-mobile-grid">
               <div className="ignored-mobile-wide">
                 <span>Motivo</span>
-                <strong>{rule.reason}</strong>
+                <strong>{item.ignoredReason ?? item.resolutionNote ?? '—'}</strong>
               </div>
               <div>
                 <span>Criado em</span>
-                <strong>{formatDate(rule.createdAt)}</strong>
+                <strong>{formatDate(item.createdAt)}</strong>
               </div>
             </div>
             <div className="ignored-actions">
-              <button type="button" onClick={() => onView(rule)}>Ver motivo</button>
-              {rule.active && <button type="button" onClick={() => onUnhide(rule)}>Desocultar</button>}
+              <button type="button" onClick={() => onView(item)}>Ver regra</button>
             </div>
           </article>
         ))}
@@ -230,10 +195,10 @@ function HiddenItemsList({ loading, items, onView, onUnhide }) {
 }
 
 // ============================================================
-// Lista da aba "Regras de ocultação" — MOCK local
+// Lista da aba "Regras de ocultação" — API real
 // ============================================================
 
-function RulesList({ rules, onView, onToggle }) {
+function RulesList({ rules, onView, onDeactivate }) {
   if (rules.length === 0) {
     return (
       <div className="ignored-empty">
@@ -259,22 +224,20 @@ function RulesList({ rules, onView, onToggle }) {
         <tbody>
           {rules.map((rule) => (
             <tr key={rule.id}>
-              <td><span className="ignored-type servico">{RULE_TYPE_LABEL[rule.type]}</span></td>
-              <td><span className="ignored-code-ref">{rule.value}</span></td>
+              <td><span className="ignored-type servico">{RULE_TYPE_LABEL[rule.matchType] ?? rule.matchType}</span></td>
+              <td><span className="ignored-code-ref">{getRuleValue(rule)}</span></td>
               <td><span className="ignored-reason">{rule.reason}</span></td>
               <td>
                 <span className={`ignored-status ${rule.active ? 'active' : 'inactive'}`}>
                   {rule.active ? 'Ativa' : 'Inativa'}
                 </span>
               </td>
-              <td><span className="ignored-muted">{rule.appliedTo} itens</span></td>
+              <td><span className="ignored-muted">{rule.normalizedSku ?? rule.normalizedDescription ?? '—'}</span></td>
               <td><span className="ignored-muted">{formatDate(rule.createdAt)}</span></td>
               <td>
                 <div className="ignored-actions">
                   <button type="button" onClick={() => onView(rule)}>Ver detalhes</button>
-                  <button type="button" onClick={() => onToggle(rule.id)}>
-                    {rule.active ? 'Desativar' : 'Reativar'}
-                  </button>
+                  {rule.active && <button type="button" onClick={() => onDeactivate(rule)}>Desativar</button>}
                 </div>
               </td>
             </tr>
@@ -287,9 +250,9 @@ function RulesList({ rules, onView, onToggle }) {
           <article className="ignored-mobile-card" key={rule.id}>
             <div className="ignored-mobile-head">
               <div>
-                <span className="ignored-type servico">{RULE_TYPE_LABEL[rule.type]}</span>
+                <span className="ignored-type servico">{RULE_TYPE_LABEL[rule.matchType] ?? rule.matchType}</span>
                 <strong style={{ marginTop: 6 }}>
-                  <span className="ignored-code-ref">{rule.value}</span>
+                  <span className="ignored-code-ref">{getRuleValue(rule)}</span>
                 </strong>
               </div>
               <span className={`ignored-status ${rule.active ? 'active' : 'inactive'}`}>
@@ -303,7 +266,7 @@ function RulesList({ rules, onView, onToggle }) {
               </div>
               <div>
                 <span>Itens afetados</span>
-                <strong>{rule.appliedTo}</strong>
+                <strong>{rule.active ? 'Regra ativa' : 'Regra inativa'}</strong>
               </div>
               <div>
                 <span>Criada em</span>
@@ -312,9 +275,7 @@ function RulesList({ rules, onView, onToggle }) {
             </div>
             <div className="ignored-actions">
               <button type="button" onClick={() => onView(rule)}>Ver detalhes</button>
-              <button type="button" onClick={() => onToggle(rule.id)}>
-                {rule.active ? 'Desativar' : 'Reativar'}
-              </button>
+              {rule.active && <button type="button" onClick={() => onDeactivate(rule)}>Desativar</button>}
             </div>
           </article>
         ))}
@@ -324,7 +285,7 @@ function RulesList({ rules, onView, onToggle }) {
 }
 
 // ============================================================
-// Lista da aba "Não vinculados" — MOCK local
+// Lista da aba "Não vinculados" — API real
 // ============================================================
 
 function UnlinkedList({ loading, items, onLink, onRegister, onHide, onCreateRule }) {
@@ -426,12 +387,13 @@ function UnlinkedList({ loading, items, onLink, onRegister, onHide, onCreateRule
 export default function AdminIgnoredItems() {
   const [tab, setTab] = useState('hidden');
 
-  // Aba "Ocultos" — API real
+  // Aba "Regras" — API real (ignored_dav_items)
   const [rules, setRules] = useState([]);
   const [loadingRules, setLoadingRules] = useState(true);
 
-  // Aba "Regras de ocultação" — MOCK local
-  const [hideRules, setHideRules] = useState(INITIAL_RULES);
+  // Aba "Ocultos" — ocorrências reais ocultadas em unlinked_dav_items.
+  const [hiddenItems, setHiddenItems] = useState([]);
+  const [loadingHidden, setLoadingHidden] = useState(true);
 
   // Aba "Não vinculados" — API real (/unlinked-dav-items)
   const [unlinkedItems, setUnlinkedItems] = useState([]);
@@ -463,13 +425,20 @@ export default function AdminIgnoredItems() {
   const [formError,    setFormError]    = useState(null);
   const [formLoading,  setFormLoading]  = useState(false);
 
-  // Recarrega itens ocultos da API
-  const reloadHidden = useCallback(() => {
+  const reloadRules = useCallback(() => {
     setLoadingRules(true);
     listIgnoredDavItems({ includeInactive: true })
       .then(setRules)
       .catch((err) => setFeedback(err.message))
       .finally(() => setLoadingRules(false));
+  }, []);
+
+  const reloadHidden = useCallback(() => {
+    setLoadingHidden(true);
+    listUnlinkedDavItems({ status: 'HIDDEN' })
+      .then(setHiddenItems)
+      .catch((err) => setFeedback(err.message))
+      .finally(() => setLoadingHidden(false));
   }, []);
 
   // Recarrega itens não vinculados (status=PENDING) da API real
@@ -481,50 +450,54 @@ export default function AdminIgnoredItems() {
       .finally(() => setLoadingUnlinked(false));
   }, []);
 
-  useEffect(() => { reloadHidden(); reloadUnlinked(); }, [reloadHidden, reloadUnlinked]);
+  useEffect(() => { reloadRules(); reloadHidden(); reloadUnlinked(); }, [reloadRules, reloadHidden, reloadUnlinked]);
 
   // Limpa busca ao trocar de aba
   useEffect(() => { setSearch(''); }, [tab]);
 
   // Contagens
-  const activeHiddenCount = rules.filter((r) => r.active).length;
-  const activeRulesCount  = hideRules.filter((r) => r.active).length;
+  const activeHiddenCount = hiddenItems.length;
+  const activeRulesCount  = rules.filter((r) => r.active).length;
   const unlinkedCount     = unlinkedItems.length;
 
   // Filtros
   const filteredHidden = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return rules.filter((rule) => {
+    return hiddenItems.filter((item) => {
       if (!q) return true;
       return (
-        rule.rawSku?.toLowerCase().includes(q)
-        || rule.rawDescription?.toLowerCase().includes(q)
-        || rule.reason?.toLowerCase().includes(q)
+        item.rawSku?.toLowerCase().includes(q)
+        || item.rawDescription?.toLowerCase().includes(q)
+        || item.ignoredReason?.toLowerCase().includes(q)
+        || item.resolutionNote?.toLowerCase().includes(q)
+        || item.davNumber?.toLowerCase().includes(q)
       );
     });
-  }, [rules, search]);
+  }, [hiddenItems, search]);
 
   const filteredRulesPattern = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return hideRules.filter((r) => {
+    return rules.filter((r) => {
       if (!q) return true;
+      const typeLabel = RULE_TYPE_LABEL[r.matchType] ?? r.matchType ?? '';
+      const value = getRuleValue(r);
       return (
-        r.value.toLowerCase().includes(q)
+        value.toLowerCase().includes(q)
         || r.reason.toLowerCase().includes(q)
-        || RULE_TYPE_LABEL[r.type].toLowerCase().includes(q)
+        || typeLabel.toLowerCase().includes(q)
       );
     });
-  }, [hideRules, search]);
+  }, [rules, search]);
 
   const filteredUnlinked = useMemo(() => {
     const q = search.trim().toLowerCase();
     return unlinkedItems.filter((u) => {
       if (!q) return true;
       return (
-        u.rawSku.toLowerCase().includes(q)
-        || u.rawDescription.toLowerCase().includes(q)
-        || u.customerName.toLowerCase().includes(q)
-        || u.davNumber.includes(q)
+        (u.rawSku ?? '').toLowerCase().includes(q)
+        || (u.rawDescription ?? '').toLowerCase().includes(q)
+        || (u.customerName ?? '').toLowerCase().includes(q)
+        || (u.davNumber ?? '').includes(q)
       );
     });
   }, [unlinkedItems, search]);
@@ -535,7 +508,7 @@ export default function AdminIgnoredItems() {
     setFormError(null);
     setModal({ type: 'hide' });
   }
-  function openViewModal(rule)      { setModal({ type: 'view', rule }); }
+  function openViewModal(item)      { setModal({ type: 'view', item }); }
   function openUnhideModal(rule)    { setModal({ type: 'unhide', rule }); }
   function openRuleModal(prefill = {}) {
     setRuleForm({ ...EMPTY_RULE_FORM, ...prefill });
@@ -562,9 +535,9 @@ export default function AdminIgnoredItems() {
     setFormLoading(true);
     try {
       await createIgnoredDavItem(hideForm);
-      setFeedback('Item ocultado no picking. Continua registrado para auditoria.');
+      setFeedback('Regra de ocultação criada. Próximos DAVs compatíveis serão ocultados.');
       closeModal();
-      reloadHidden();
+      reloadRules();
     } catch (err) {
       setFormError(err.message || 'Erro ao ocultar item');
     } finally {
@@ -577,42 +550,42 @@ export default function AdminIgnoredItems() {
     setFormLoading(true);
     try {
       await deactivateIgnoredDavItem(modal.rule.id);
-      setFeedback('Item desocultado. Volta a aparecer para o estoquista.');
+      setFeedback('Regra desativada. Ela não será aplicada nos próximos DAVs.');
       closeModal();
-      reloadHidden();
+      reloadRules();
     } catch (err) {
       setFeedback(err.message || 'Erro ao desocultar item');
       closeModal();
     }
   }
 
-  // Aba "Regras" — MOCK
-  function saveRuleMock(e) {
+  async function saveRule(e) {
     e.preventDefault();
     setFormError(null);
     if (!ruleForm.value.trim() || !ruleForm.reason.trim()) {
       setFormError('Preencha o valor da regra e o motivo.');
       return;
     }
-    const newRule = {
-      id:        `r-${Date.now()}`,
-      type:      ruleForm.type,
-      value:     ruleForm.value.trim(),
-      reason:    ruleForm.reason.trim(),
-      active:    true,
-      createdAt: new Date().toISOString(),
-      appliedTo: 0,
-    };
-    setHideRules((prev) => [newRule, ...prev]);
-    setFeedback('Regra criada localmente. (Mock — backend ainda não persiste regras por padrão.)');
-    closeModal();
-  }
+    setFormLoading(true);
+    try {
+      const payload = {
+        matchType: ruleForm.type,
+        reason:    ruleForm.reason.trim(),
+      };
+      if (ruleForm.type.startsWith('SKU')) payload.rawSku = ruleForm.value.trim();
+      else if (ruleForm.type.startsWith('MANUFACTURER_REFERENCE')) payload.manufacturerReference = ruleForm.value.trim();
+      else if (ruleForm.type === 'MANUFACTURER_NAME') payload.manufacturerName = ruleForm.value.trim();
+      else payload.rawDescription = ruleForm.value.trim();
 
-  function toggleRuleActive(id) {
-    setHideRules((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, active: !r.active } : r))
-    );
-    setFeedback('Status da regra alternado localmente. (Mock — sem persistência.)');
+      await createIgnoredDavItem(payload);
+      setFeedback('Regra de ocultação criada e ativa para os próximos DAVs.');
+      closeModal();
+      reloadRules();
+    } catch (err) {
+      setFormError(err.message || 'Erro ao criar regra');
+    } finally {
+      setFormLoading(false);
+    }
   }
 
   // Aba "Não vinculados" — chamadas reais à API
@@ -677,6 +650,7 @@ export default function AdminIgnoredItems() {
       closeModal();
       reloadUnlinked();
       reloadHidden();
+      reloadRules();
     } catch (err) {
       setFormError(err.message || 'Erro ao ocultar item');
     } finally {
@@ -721,7 +695,7 @@ export default function AdminIgnoredItems() {
       <section className="hero ignored-hero">
         <div>
           <h1>Itens ignorados no picking</h1>
-          <p>Gerencie itens ocultos manualmente, regras por padrão e itens DAV não vinculados.</p>
+          <p>Gerencie itens ocultos, regras reais de ocultação e itens DAV não vinculados.</p>
         </div>
         <div className="hero-actions">
           {tab === 'hidden' && (
@@ -743,7 +717,7 @@ export default function AdminIgnoredItems() {
 
       <section className="ignored-stats-grid">
         <StatCard icon={ICON_HIDDEN} value={activeHiddenCount}
-          label="Itens ocultos" description="Ocultados manualmente, não vão para o picking" />
+          label="Itens ocultos" description="Ocorrências ocultadas, não vão para o picking" />
         <StatCard icon={ICON_RULE} value={activeRulesCount}
           label="Regras ativas" description="Padrões que ocultam itens automaticamente"
           iconStyle={{ background: 'var(--primary-fixed)', color: 'var(--primary)' }} />
@@ -751,7 +725,7 @@ export default function AdminIgnoredItems() {
           label="Não vinculados" description="Itens DAV sem produto no catálogo"
           iconStyle={{ background: '#fff2dd', color: '#b75a00' }} />
         <StatCard icon={ICON_HIDDEN} value={rules.filter((r) => !r.active).length}
-          label="Desocultados" description="Voltaram para o fluxo do estoquista"
+          label="Regras inativas" description="Não serão aplicadas em novos DAVs"
           iconStyle={{ background: '#ececf5', color: '#6a6a78' }} />
       </section>
 
@@ -825,10 +799,9 @@ export default function AdminIgnoredItems() {
 
         {tab === 'hidden' && (
           <HiddenItemsList
-            loading={loadingRules}
+            loading={loadingHidden}
             items={filteredHidden}
             onView={openViewModal}
-            onUnhide={openUnhideModal}
           />
         )}
 
@@ -836,7 +809,7 @@ export default function AdminIgnoredItems() {
           <RulesList
             rules={filteredRulesPattern}
             onView={openRuleViewModal}
-            onToggle={toggleRuleActive}
+            onDeactivate={openUnhideModal}
           />
         )}
 
@@ -896,21 +869,19 @@ export default function AdminIgnoredItems() {
 
           {modal.type === 'view' && (
             <ModalCard title="Detalhes do item oculto"
-              subtitle={`${modal.rule.rawSku ?? '—'} · ${modal.rule.rawDescription ?? '—'}`}
+              subtitle={`DAV ${modal.item.davNumber ?? '—'} · ${modal.item.rawDescription ?? '—'}`}
               onClose={closeModal}>
               <div className="ignored-modal-body">
                 <div className="ignored-rule-grid">
-                  <span>Código/Ref.</span><strong><span className="ignored-code-ref">{modal.rule.rawSku ?? '—'}</span></strong>
-                  <span>Descrição</span><strong>{modal.rule.rawDescription ?? '—'}</strong>
-                  <span>Motivo</span><strong>{modal.rule.reason}</strong>
-                  <span>Origem</span><strong>Ocultação manual</strong>
-                  <span>Status</span>
-                  <strong>
-                    <span className={`ignored-status ${modal.rule.active ? 'active' : 'inactive'}`}>
-                      {modal.rule.active ? 'Oculto' : 'Desocultado'}
-                    </span>
-                  </strong>
-                  <span>Criado em</span><strong>{formatDate(modal.rule.createdAt)}</strong>
+                  <span>DAV</span><strong>{modal.item.davNumber ?? '—'}</strong>
+                  <span>Código/Ref.</span><strong><span className="ignored-code-ref">{modal.item.rawSku ?? modal.item.manufacturerReference ?? '—'}</span></strong>
+                  <span>Descrição</span><strong>{modal.item.rawDescription ?? '—'}</strong>
+                  <span>Fabricante</span><strong>{modal.item.manufacturerName ?? '—'}</strong>
+                  <span>Quantidade</span><strong>{modal.item.quantity} {modal.item.unit ?? ''}</strong>
+                  <span>Motivo</span><strong>{modal.item.ignoredReason ?? modal.item.resolutionNote ?? '—'}</strong>
+                  <span>Regra</span><strong>{modal.item.ruleMatchType ?? '—'}</strong>
+                  <span>Origem</span><strong>{modal.item.ignoredRuleId ? 'Oculto por regra' : 'Oculto manualmente'}</strong>
+                  <span>Criado em</span><strong>{formatDate(modal.item.createdAt)}</strong>
                 </div>
               </div>
               <div className="ignored-modal-foot">
@@ -920,19 +891,19 @@ export default function AdminIgnoredItems() {
           )}
 
           {modal.type === 'unhide' && (
-            <ModalCard title="Desocultar item?"
-              subtitle="O item voltará a aparecer no fluxo do estoquista nos próximos DAVs."
+            <ModalCard title="Desativar regra?"
+              subtitle="A regra não será aplicada nos próximos DAVs. Ocorrências já registradas continuam no histórico."
               onClose={closeModal}>
               <div className="ignored-modal-body">
                 <div className="ignored-confirm-box">
-                  <strong>{modal.rule.rawDescription ?? modal.rule.rawSku}</strong>
-                  <p>Após desocultar, o item será incluído normalmente na lista de picking dos próximos pedidos.</p>
+                  <strong>{getRuleValue(modal.rule)}</strong>
+                  <p>Após desativar, novos itens compatíveis deixam de ser ocultados automaticamente.</p>
                 </div>
               </div>
               <div className="ignored-modal-foot">
                 <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
                 <button className="btn btn-danger" type="button" onClick={confirmUnhide} disabled={formLoading}>
-                  {formLoading ? 'Desocultando…' : 'Desocultar'}
+                  {formLoading ? 'Desativando…' : 'Desativar regra'}
                 </button>
               </div>
             </ModalCard>
@@ -940,9 +911,9 @@ export default function AdminIgnoredItems() {
 
           {modal.type === 'rule' && (
             <ModalCard title="Nova regra de ocultação"
-              subtitle="Oculte automaticamente itens que correspondam a um padrão. (Mock — backend pendente.)"
+              subtitle="Oculte automaticamente itens que correspondam a um padrão nos próximos DAVs."
               onClose={closeModal}>
-              <form className="ignored-form" onSubmit={saveRuleMock}>
+              <form className="ignored-form" onSubmit={saveRule}>
                 <div className="ignored-form-grid">
                   <div className="ignored-form-wide">
                     <span style={{
@@ -977,16 +948,11 @@ export default function AdminIgnoredItems() {
                   </label>
                 </div>
                 {formError && <div className="ignored-form-error">{formError}</div>}
-                <div className="ignored-mock-warning">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                    <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                  Mock visual: regras por padrão ainda não são persistidas pelo backend.
-                </div>
                 <div className="ignored-modal-foot" style={{ marginTop: 16 }}>
                   <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
-                  <button className="btn btn-primary" type="submit">Criar regra</button>
+                  <button className="btn btn-primary" type="submit" disabled={formLoading}>
+                    {formLoading ? 'Criando…' : 'Criar regra'}
+                  </button>
                 </div>
               </form>
             </ModalCard>
@@ -994,24 +960,25 @@ export default function AdminIgnoredItems() {
 
           {modal.type === 'rule-view' && (
             <ModalCard title="Detalhes da regra"
-              subtitle={`${RULE_TYPE_LABEL[modal.rule.type]}: "${modal.rule.value}"`}
+              subtitle={`${RULE_TYPE_LABEL[modal.rule.matchType] ?? modal.rule.matchType}: "${getRuleValue(modal.rule)}"`}
               onClose={closeModal}>
               <div className="ignored-modal-body">
                 <div className="ignored-rule-grid">
-                  <span>Tipo</span><strong>{RULE_TYPE_LABEL[modal.rule.type]}</strong>
-                  <span>Valor</span><strong><span className="ignored-code-ref">{modal.rule.value}</span></strong>
+                  <span>Tipo</span><strong>{RULE_TYPE_LABEL[modal.rule.matchType] ?? modal.rule.matchType}</strong>
+                  <span>Valor</span><strong><span className="ignored-code-ref">{getRuleValue(modal.rule)}</span></strong>
                   <span>Motivo</span><strong>{modal.rule.reason}</strong>
                   <span>Status</span><strong>{modal.rule.active ? 'Ativa' : 'Inativa'}</strong>
-                  <span>Itens afetados</span><strong>{modal.rule.appliedTo} itens</strong>
+                  <span>Valor normalizado</span><strong>{modal.rule.normalizedSku ?? modal.rule.normalizedDescription ?? '—'}</strong>
                   <span>Criada em</span><strong>{formatDate(modal.rule.createdAt)}</strong>
                 </div>
               </div>
               <div className="ignored-modal-foot">
                 <button className="btn btn-secondary" type="button" onClick={closeModal}>Fechar</button>
-                <button className="btn btn-primary" type="button"
-                  onClick={() => { toggleRuleActive(modal.rule.id); closeModal(); }}>
-                  {modal.rule.active ? 'Desativar regra' : 'Reativar regra'}
-                </button>
+                {modal.rule.active && (
+                  <button className="btn btn-primary" type="button" onClick={() => setModal({ type: 'unhide', rule: modal.rule })}>
+                    Desativar regra
+                  </button>
+                )}
               </div>
             </ModalCard>
           )}

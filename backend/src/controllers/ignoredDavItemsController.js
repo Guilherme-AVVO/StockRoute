@@ -12,6 +12,8 @@ function toDto(row) {
     normalizedSku:       row.normalized_sku       ?? null,
     rawDescription:      row.raw_description      ?? null,
     normalizedDescription: row.normalized_description ?? null,
+    manufacturerReference: row.manufacturer_reference ?? null,
+    manufacturerName:    row.manufacturer_name    ?? null,
     matchType:           row.match_type,
     reason:              row.reason,
     active:              row.active,

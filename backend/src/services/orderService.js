@@ -43,6 +43,47 @@ async function findProductForDavItem(item) {
   return findProductForSku(item.rawSku);
 }
 
+export async function resolveDavItemRouting(item) {
+  const ignored = await shouldIgnoreDavItem({
+    rawSku:                item.rawSku,
+    rawDescription:        item.rawDescription,
+    manufacturerReference: item.manufacturerReference,
+    manufacturerName:      item.manufacturerName,
+  });
+
+  if (ignored.ignored) {
+    return {
+      route:         'HIDDEN',
+      productId:     null,
+      ignoredRuleId: ignored.ruleId,
+      ignoredReason: ignored.reason,
+      matchType:     ignored.matchType,
+      matchedValue:  ignored.matchedValue,
+      status:        'HIDDEN',
+    };
+  }
+
+  const product = await findProductForDavItem(item);
+  if (product) {
+    return {
+      route:         'LINKED',
+      productId:     product.id,
+      product,
+      ignoredRuleId: null,
+      ignoredReason: null,
+      status:        'PENDING',
+    };
+  }
+
+  return {
+    route:         'UNLINKED',
+    productId:     null,
+    ignoredRuleId: null,
+    ignoredReason: null,
+    status:        'PENDING',
+  };
+}
+
 function toOrderDto(row) {
   return {
     id:            row.id,
@@ -98,14 +139,9 @@ export async function importDav(fileBuffer) {
   //   2) Produto cadastrado encontrado? → order_items (vai para revisão/picking)
   //   3) Sem regra nem produto? → unlinked_dav_items status=PENDING
   for (const item of items) {
-    const ruling = await shouldIgnoreDavItem({
-      rawSku:                item.rawSku,
-      rawDescription:        item.rawDescription,
-      manufacturerReference: item.manufacturerReference,
-      manufacturerName:      item.manufacturerName,
-    });
+    const routing = await resolveDavItemRouting(item);
 
-    if (ruling.ignored) {
+    if (routing.route === 'HIDDEN') {
       // Persiste como HIDDEN para auditoria e para o toggle "Mostrar itens ocultos"
       // conseguir exibir esses itens junto da revisão.
       await createUnlinkedDavItem({
@@ -117,16 +153,14 @@ export async function importDav(fileBuffer) {
         manufacturerReference: item.manufacturerReference,
         manufacturerName:      item.manufacturerName,
         status:                'HIDDEN',
-        ignoredRuleId:         ruling.ruleId,
-        resolutionNote:        ruling.reason,
+        ignoredRuleId:         routing.ignoredRuleId,
+        resolutionNote:        routing.ignoredReason,
       });
       counts.ignored++;
       continue;
     }
 
-    const product = await findProductForDavItem(item);
-
-    if (!product) {
+    if (routing.route === 'UNLINKED') {
       const saved = await createUnlinkedDavItem({
         orderId:               order.id,
         rawSku:                item.rawSku,
@@ -151,7 +185,7 @@ export async function importDav(fileBuffer) {
 
     await createOrderItem({
       orderId:   order.id,
-      productId: product.id,
+      productId: routing.productId,
       quantity:  item.quantity,
     });
     counts.found++;
