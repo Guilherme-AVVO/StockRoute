@@ -66,6 +66,7 @@ export const EVENT_TYPE_LABELS = {
   PICKING_FINISHED:             'Separação concluída',
   USER_CREATED:                 'Usuário criado',
   USER_UPDATED:                 'Usuário atualizado',
+  USER_STATUS_CHANGED:          'Status de usuário',
   SETTINGS_UPDATED:             'Configuração salva',
 };
 

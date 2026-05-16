@@ -43,7 +43,7 @@ Filtros aceitos em `GET /audit-events`:
 
 ## Tipos de evento canônicos
 
-Definidos como constantes em [auditService.AUDIT_EVENT_TYPES](../../backend/src/services/auditService.js): `DAV_UPLOADED`, `DAV_IMPORTED`, `ORDER_CREATED`, `ORDER_REVIEW_STARTED`, `ORDER_PUBLISHED`, `ORDER_STATUS_CHANGED`, `PRODUCT_CREATED`, `PRODUCT_UPDATED`, `PRODUCT_DELETED`, `UNLINKED_ITEM_CREATED`, `UNLINKED_ITEM_LINKED`, `PRODUCT_CREATED_FROM_UNLINKED`, `HIDE_RULE_CREATED`, `HIDE_RULE_UPDATED`, `HIDE_RULE_DELETED`, `HIDE_RULE_STATUS_CHANGED`, `ITEM_HIDDEN_BY_RULE`, `ITEM_HIDDEN_MANUALLY`, `ITEM_UNHIDDEN`, `PICKING_STARTED`, `PICKING_ITEM_COLLECTED`, `PICKING_ITEM_NOT_FOUND`, `PICKING_FINISHED`, `USER_CREATED`, `USER_UPDATED`, `SETTINGS_UPDATED`.
+Definidos como constantes em [auditService.AUDIT_EVENT_TYPES](../../backend/src/services/auditService.js): `DAV_UPLOADED`, `DAV_IMPORTED`, `ORDER_CREATED`, `ORDER_REVIEW_STARTED`, `ORDER_PUBLISHED`, `ORDER_STATUS_CHANGED`, `PRODUCT_CREATED`, `PRODUCT_UPDATED`, `PRODUCT_DELETED`, `UNLINKED_ITEM_CREATED`, `UNLINKED_ITEM_LINKED`, `PRODUCT_CREATED_FROM_UNLINKED`, `HIDE_RULE_CREATED`, `HIDE_RULE_UPDATED`, `HIDE_RULE_DELETED`, `HIDE_RULE_STATUS_CHANGED`, `ITEM_HIDDEN_BY_RULE`, `ITEM_HIDDEN_MANUALLY`, `ITEM_UNHIDDEN`, `PICKING_STARTED`, `PICKING_ITEM_COLLECTED`, `PICKING_ITEM_NOT_FOUND`, `PICKING_FINISHED`, `USER_CREATED`, `USER_UPDATED`, `USER_STATUS_CHANGED`, `SETTINGS_UPDATED`.
 
 ## Onde os eventos são gravados
 
@@ -56,7 +56,7 @@ Hooks `logAuditEvent` foram adicionados nos controllers (camada HTTP — sempre 
   - Grupos: `PRODUCT_CREATED_FROM_UNLINKED`, `UNLINKED_ITEM_LINKED`, `ITEM_HIDDEN_MANUALLY` (com `affectedOrdersCount`/`hiddenItemsCount` em metadata).
 - **`orderController`**: `DAV_UPLOADED`, `DAV_IMPORTED`, `ORDER_PUBLISHED`.
 
-Tipos como `PICKING_*`, `USER_*`, `SETTINGS_*` estão definidos no enum porque o pipeline já os reconhece; serão gravados quando os respectivos fluxos forem implementados.
+Tipos como `PICKING_*` e `SETTINGS_*` estão definidos no enum porque o pipeline já os reconhece; serão gravados quando os respectivos fluxos forem implementados. Eventos `USER_CREATED`, `USER_UPDATED` e `USER_STATUS_CHANGED` já são gravados pelo CRUD administrativo de usuários.
 
 ## Como responsável é preenchido
 
@@ -119,5 +119,5 @@ Página [AdminHistory.jsx](../../frontend/src/pages/admin/AdminHistory.jsx):
 
 - Picking ainda não dispara eventos `PICKING_*` (fluxo não implementado nos services atuais).
 - Upload de evidências (fotos de coleta) ainda não existe — `evidence_url` virá quando o fluxo for criado.
-- CRUD de usuários e tela de Configurações ainda não geram eventos porque os fluxos correspondentes não existem em backend.
+- Reset de senha administrativo e tela de Configurações ainda não geram eventos porque os fluxos correspondentes não existem em backend.
 - Não há paginação infinita na UI — o limite é 100 eventos por carga; aceitável para o volume atual.

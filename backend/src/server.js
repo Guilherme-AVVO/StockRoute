@@ -12,6 +12,7 @@ import orderRoutes           from './routes/orderRoutes.js';
 import dashboardRoutes       from './routes/dashboardRoutes.js';
 import unlinkedDavItemsRoutes from './routes/unlinkedDavItemsRoutes.js';
 import auditRoutes            from './routes/auditRoutes.js';
+import userRoutes             from './routes/userRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
@@ -111,6 +112,7 @@ app.use('/orders',             orderRoutes);
 app.use('/dashboard',          dashboardRoutes);
 app.use('/unlinked-dav-items', unlinkedDavItemsRoutes);
 app.use('/audit-events',       auditRoutes);
+app.use('/users',              userRoutes);
 
 // 404 para rotas inexistentes
 app.use((_req, res) => {

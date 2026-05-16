@@ -19,6 +19,9 @@ export async function login(email, password) {
   if (response.status === 401) {
     throw new Error('invalid_credentials');
   }
+  if (response.status === 403) {
+    throw new Error('inactive_user');
+  }
   if (!response.ok) {
     throw new Error('unexpected');
   }

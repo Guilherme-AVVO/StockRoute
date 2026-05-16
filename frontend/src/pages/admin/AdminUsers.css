@@ -2,6 +2,7 @@
 .users-page { display: flex; flex-direction: column; gap: 22px; }
 .users-hero { margin-bottom: 0; }
 .users-feedback { padding: 11px 14px; border-radius: var(--radius-md); background: var(--success-bg); color: var(--success); font-size: 13px; font-weight: 700; }
+.users-error { padding: 11px 14px; border-radius: var(--radius-md); background: var(--error-bg); color: #7a0014; font-size: 13px; font-weight: 700; }
 .users-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 .users-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
 .users-main, .users-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -37,6 +38,7 @@
 .users-side-card h3 { margin: 14px 0 8px; font-size: 12px; color: var(--primary); }
 .users-side-card ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .users-side-card li { color: var(--on-surface-variant); font-size: 13px; line-height: 1.4; }
+.users-side-empty { color: var(--on-surface-variant); font-size: 13px; line-height: 1.4; margin: 0; }
 
 /* Cards mobile */
 .users-mobile-list { display: none; }
@@ -58,6 +60,7 @@
 .users-form input, .users-form select { border: 1.5px solid var(--outline); border-radius: var(--radius-md); padding: 10px 12px; font-family: var(--font-body); font-size: 14px; }
 .users-toggle { flex-direction: row !important; align-items: center; }
 .users-form-error { grid-column: 1 / -1; padding: 10px 12px; border-radius: var(--radius-md); background: var(--error-bg); color: #7a0014; font-size: 13px; font-weight: 700; }
+.users-confirm-error { margin: 0 24px 18px; }
 .users-detail-grid { padding: 0 24px 18px; display: grid; grid-template-columns: 150px 1fr; gap: 10px 14px; font-size: 13px; }
 .users-detail-grid p { grid-column: 1 / -1; margin: 8px 0 0; padding: 12px; border-radius: var(--radius-md); background: var(--surface-low); color: var(--on-surface-variant); }
 .users-confirm { padding: 0 24px 18px; color: var(--on-surface-variant); }

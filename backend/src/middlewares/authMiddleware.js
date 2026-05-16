@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
+import { findUserById } from '../../db/queries/users.js';
 
-export function authMiddleware(req, res, next) {
+export async function authMiddleware(req, res, next) {
   const authHeader = req.headers['authorization'];
 
   // Rotas protegidas devem receber Authorization: Bearer <token>.
@@ -18,11 +19,16 @@ export function authMiddleware(req, res, next) {
       algorithms: ['HS256'],
     });
 
+    const user = await findUserById(decoded.id);
+    if (!user || user.is_active === false) {
+      return res.status(401).json({ message: 'Token inválido ou expirado' });
+    }
+
     req.user = {
-      id: decoded.id,
-      name: decoded.name ?? null,
-      email: decoded.email,
-      role: decoded.role,
+      id: user.id,
+      name: user.name ?? decoded.name ?? null,
+      email: user.email,
+      role: user.role,
     };
 
     next();

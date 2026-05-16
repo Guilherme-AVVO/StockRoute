@@ -34,6 +34,14 @@ backend/
 | 5 | `005_create_picking_evidences.sql` | Depende de `order_items` e `users`. |
 | 6 | `006_create_missing_items.sql` | Depende de `order_items` e `users`. |
 | 7 | `007_create_ignored_dav_items.sql` | Depende de `users`; registra regras ADMIN para ignorar itens DAV no picking. |
+| 8 | `008_create_unlinked_dav_items.sql` | Depende de `orders`, `users` e regras de revisão de DAV. |
+| 9 | `009_add_manufacturer_fields.sql` | Expande produtos/itens DAV com referência e fabricante. |
+| 10 | `010_expand_ignored_dav_items.sql` | Expande regras de ocultação por fabricante/referência. |
+| 11 | `011_add_name_hide_rules.sql` | Ajusta regras de ocultação por nome. |
+| 12 | `012_simplify_hide_rules.sql` | Simplifica campos e soft delete de regras. |
+| 13 | `013_reapply_hide_rules.sql` | Suporta reaplicação de regras em itens já importados. |
+| 14 | `014_create_audit_events.sql` | Cria histórico/auditoria append-only. |
+| 15 | `015_add_user_status.sql` | Adiciona `users.is_active` para ativar/desativar usuários sem apagar histórico. |
 
 Para rodar todas em sequência (psql):
 ```bash
@@ -45,6 +53,14 @@ psql -U stockroute_user -d stockroute \
   -f migrations/005_create_picking_evidences.sql \
   -f migrations/006_create_missing_items.sql \
   -f migrations/007_create_ignored_dav_items.sql \
+  -f migrations/008_create_unlinked_dav_items.sql \
+  -f migrations/009_add_manufacturer_fields.sql \
+  -f migrations/010_expand_ignored_dav_items.sql \
+  -f migrations/011_add_name_hide_rules.sql \
+  -f migrations/012_simplify_hide_rules.sql \
+  -f migrations/013_reapply_hide_rules.sql \
+  -f migrations/014_create_audit_events.sql \
+  -f migrations/015_add_user_status.sql \
   -f seeds/seed_001_initial.sql
 ```
 
@@ -53,7 +69,7 @@ psql -U stockroute_user -d stockroute \
 ## Tabelas
 
 ### `users`
-Usuários do sistema. Dois papéis: `ADMIN` e `ESTOQUISTA`. Senha hasheada pelo backend (bcrypt) antes de salvar.  
+Usuários do sistema. Dois papéis: `ADMIN` e `ESTOQUISTA`. Senha hasheada pelo backend (bcrypt) antes de salvar. O campo `is_active` controla se o usuário pode acessar o sistema sem apagar histórico.
 *Otimizações:* Campos de nome e email usam limites razoáveis (`VARCHAR(150)` e `VARCHAR(255)`) com constraint (`users_email_format`) para forçar presença de `@` no email.
 ### `products`
 Produtos do estoque. Cada produto tem uma **unidade de medida fixa** (`unit`). Caixa de parafuso e saco de parafuso são produtos distintos.
@@ -124,6 +140,7 @@ O item do DAV não deve ser apagado do histórico; a regra serve para classifica
 |--------|--------|--------|
 | `idx_users_email` | users | Login (busca por email) |
 | `idx_users_role` | users | Listagem por papel |
+| `idx_users_is_active` | users | Filtro por usuários ativos/inativos |
 | `idx_products_sku` | products | Import de DAV — lookup de SKU |
 | `idx_products_name` | products | Busca textual (GIN full-text) |
 | `idx_orders_status` | orders | Filtro de painel por status |

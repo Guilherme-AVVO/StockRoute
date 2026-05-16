@@ -45,6 +45,7 @@ export const AUDIT_EVENT_TYPES = Object.freeze({
   PICKING_FINISHED:             'PICKING_FINISHED',
   USER_CREATED:                 'USER_CREATED',
   USER_UPDATED:                 'USER_UPDATED',
+  USER_STATUS_CHANGED:          'USER_STATUS_CHANGED',
   SETTINGS_UPDATED:             'SETTINGS_UPDATED',
 });
 

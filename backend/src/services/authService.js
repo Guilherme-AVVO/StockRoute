@@ -12,6 +12,10 @@ export async function login(email, password) {
     throw { status: 401, message: 'Credenciais inválidas' };
   }
 
+  if (user.is_active === false) {
+    throw { status: 403, message: 'Usuário inativo. Procure um administrador.' };
+  }
+
   // Compara a senha digitada com o hash bcrypt salvo no banco.
   // O hash completo nunca é retornado para o frontend.
   const valid = await bcrypt.compare(password, user.password_hash);

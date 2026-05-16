@@ -5,6 +5,7 @@ import './Login.css';
 // Mensagens amigáveis exibidas dentro do layout original da tela.
 const ERROR_MESSAGES = {
   invalid_credentials: 'Credenciais inválidas. Verifique seu e-mail e senha.',
+  inactive_user: 'Usuário inativo. Procure um administrador.',
   rate_limit: 'Muitas tentativas de login. Aguarde alguns minutos e tente novamente.',
   network: 'Não foi possível conectar ao servidor. Verifique se o backend está rodando.',
   unexpected: 'Erro inesperado ao tentar entrar. Tente novamente.',
