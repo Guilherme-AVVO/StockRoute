@@ -20,8 +20,11 @@ export async function login(email, password) {
     throw { status: 401, message: 'Credenciais inválidas' };
   }
 
+  // Incluímos `name` no payload para que o middleware de auditoria
+  // consiga preencher responsible_name nos eventos sem uma query extra.
   const payload = {
     id: user.id,
+    name: user.name,
     email: user.email,
     role: user.role,
   };

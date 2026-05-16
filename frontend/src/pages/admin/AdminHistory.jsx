@@ -1,172 +1,338 @@
 // Página ADMIN de Histórico.
-// Consulta visual de eventos, evidências e decisões administrativas.
-import { useMemo, useState } from 'react';
+// Consulta visual de eventos reais persistidos em audit_events. Todos os
+// dados vêm da API — não há mais arrays mockados nesta tela.
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatCard from '../../components/admin/StatCard.jsx';
+import {
+  listAuditEvents,
+  getAuditSummary,
+  EVENT_TYPE_LABELS,
+  labelForEventType,
+  deriveAction,
+} from '../../services/auditService.js';
 import './AdminHistory.css';
 
-// Dados temporários usados apenas para montar a interface.
-// Quando as APIs estiverem prontas, substituir por chamadas reais ao backend.
-const EVENTS = [
-  { id: 1, datetime: '13/05/2026 09:42', period: 'today', dav: '0000000113110', client: 'Projete Planejados', event: 'Pedido publicado', type: 'Publicação', responsible: 'Rafael Costa', status: 'Aguardando', evidence: '—', action: 'Ver' },
-  { id: 2, datetime: '13/05/2026 10:05', period: 'today', dav: '0000000113108', client: 'Marcenaria Lopes', event: 'Item coletado', type: 'Item coletado', responsible: 'João Estoquista', status: 'Em separação', evidence: '1 foto', action: 'Ver' },
-  { id: 3, datetime: '13/05/2026 10:12', period: 'today', dav: '0000000113105', client: 'Móveis Sob Medida ME', event: 'Item não encontrado', type: 'Não encontrado', responsible: 'Carlos Estoquista', status: 'Observação', evidence: 'motivo informado', action: 'Resolver' },
-  { id: 4, datetime: '13/05/2026 10:20', period: 'today', dav: '0000000113105', client: 'Móveis Sob Medida ME', event: 'Decisão ADMIN', type: 'Decisão ADMIN', responsible: 'Rafael Costa', status: 'Observação', evidence: 'troca autorizada', action: 'Ver' },
-  { id: 5, datetime: '13/05/2026 10:24', period: 'today', dav: '0000000113110', client: 'Projete Planejados', event: 'Item ignorado automaticamente', type: 'Ignorado automático', responsible: 'Sistema', status: 'Revisão', evidence: 'regra SERV-CORTE', action: 'Ver regra' },
-  { id: 6, datetime: '13/05/2026 11:02', period: 'today', dav: '0000000113101', client: 'Casa & Cia Decorações', event: 'Pedido concluído', type: 'Separação', responsible: 'Maria Estoquista', status: 'Concluído', evidence: '31 fotos', action: 'Ver' },
-  { id: 7, datetime: '12/05/2026 08:15', period: '7', dav: '0000000113098', client: 'Fragoso Móveis Planejados', event: 'Upload DAV', type: 'Upload DAV', responsible: 'Rafael Costa', status: 'Rascunho', evidence: 'PDF recebido', action: 'Ver' },
+// Filtros derivados dos tipos de evento canônicos do backend.
+const FILTER_TYPES = [
+  { value: '', label: 'Todos' },
+  ...Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => ({ value, label })),
 ];
 
-const FILTERS = ['Todos', 'Upload DAV', 'Publicação', 'Separação', 'Item coletado', 'Não encontrado', 'Decisão ADMIN', 'Ignorado automático'];
-const PERIODS = [{ id: 'today', label: 'Hoje' }, { id: '7', label: '7 dias' }, { id: '30', label: '30 dias' }, { id: 'all', label: 'Todos' }];
+const PERIODS = [
+  { id: 'today', label: 'Hoje' },
+  { id: '7',     label: '7 dias' },
+  { id: '30',    label: '30 dias' },
+  { id: 'all',   label: 'Todos'  },
+];
+
+function periodToRange(period) {
+  if (period === 'all') return {};
+  const now = new Date();
+  if (period === 'today') {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    return { dateFrom: start.toISOString() };
+  }
+  const days = Number(period);
+  if (!Number.isFinite(days)) return {};
+  const start = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  return { dateFrom: start.toISOString() };
+}
+
+function formatDateTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function statusKey(status) {
+  if (!status) return 'sistema';
+  return status
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, '-');
+}
 
 function EventStatus({ status }) {
-  const key = status.toLowerCase().replace(/\s/g, '-').replace('ç', 'c').replace('ã', 'a');
-  return <span className={`history-status ${key}`}>{status}</span>;
+  if (!status) return <span className="history-status sistema">Sistema</span>;
+  return <span className={`history-status ${statusKey(status)}`}>{status}</span>;
+}
+
+function evidenceLabel(event) {
+  if (event.evidenceUrl) return event.evidenceType ?? 'Evidência';
+  if (event.evidenceType) return event.evidenceType;
+  return 'Sem evidência';
+}
+
+function renderMetadata(metadata) {
+  if (!metadata || Object.keys(metadata).length === 0) {
+    return <p className="history-muted">Sem metadados adicionais.</p>;
+  }
+  return (
+    <ul className="history-metadata-list">
+      {Object.entries(metadata).map(([key, value]) => (
+        <li key={key}>
+          <span>{key}</span>
+          <strong>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</strong>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export default function AdminHistory() {
-  const [filter, setFilter] = useState('Todos');
+  const [filterType, setFilterType] = useState('');
   const [period, setPeriod] = useState('all');
   const [search, setSearch] = useState('');
   const [onlyPending, setOnlyPending] = useState(false);
-  const [selected, setSelected] = useState(EVENTS[0]);
-  const [modalEvent, setModalEvent] = useState(null);
-  const [feedback, setFeedback] = useState(null);
 
-  // Filtros locais para timeline/histórico mockado.
-  const filteredEvents = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return EVENTS.filter((item) => {
-      const byType = filter === 'Todos' || item.type === filter;
-      const byPeriod = period === 'all' || item.period === period || (period === '30' && ['today', '7'].includes(item.period));
-      const byPending = !onlyPending || item.status === 'Observação' || item.action === 'Resolver';
-      const bySearch = !term
-        || item.dav.toLowerCase().includes(term)
-        || item.client.toLowerCase().includes(term)
-        || item.responsible.toLowerCase().includes(term);
-      return byType && byPeriod && byPending && bySearch;
-    });
-  }, [filter, onlyPending, period, search]);
+  const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [summary, setSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+
+  const [error, setError] = useState(null);
+
+  const [selected, setSelected] = useState(null);
+  const [modalEvent, setModalEvent] = useState(null);
+
+  // Reload eventos sempre que filtros mudarem. Backend faz busca/filtro/período
+  // — o frontend não duplica essa lógica.
+  const reloadEvents = useCallback(() => {
+    setLoadingEvents(true);
+    setError(null);
+    const filters = {
+      ...(filterType  ? { eventType: filterType } : {}),
+      ...(search.trim() ? { search: search.trim() } : {}),
+      ...(onlyPending ? { onlyPending: true }      : {}),
+      ...periodToRange(period),
+      limit: 100,
+    };
+    listAuditEvents(filters)
+      .then((data) => {
+        setEvents(data.items ?? []);
+        // Mantém seleção se o evento ainda estiver na lista.
+        setSelected((cur) => {
+          if (!cur) return data.items?.[0] ?? null;
+          return data.items?.find((e) => e.id === cur.id) ?? data.items?.[0] ?? null;
+        });
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoadingEvents(false));
+  }, [filterType, period, search, onlyPending]);
+
+  const reloadSummary = useCallback(() => {
+    setLoadingSummary(true);
+    getAuditSummary()
+      .then(setSummary)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoadingSummary(false));
+  }, []);
+
+  useEffect(() => { reloadEvents(); }, [reloadEvents]);
+  useEffect(() => { reloadSummary(); }, [reloadSummary]);
 
   function openEvent(event) {
     setSelected(event);
     setModalEvent(event);
   }
 
+  const cards = useMemo(() => ([
+    { value: summary?.completedOrders        ?? 0, label: 'Pedidos concluídos',  description: 'Pedidos com status COMPLETED' },
+    { value: summary?.ordersWithObservation  ?? 0, label: 'Eventos em observação', description: 'Exigem ação do ADMIN' },
+    { value: summary?.registeredPhotos       ?? 0, label: 'Evidências registradas', description: 'Eventos com URL de evidência' },
+    { value: summary?.adminActions           ?? 0, label: 'Ações administrativas', description: 'Eventos disparados por ADMIN' },
+  ]), [summary]);
+
   return (
     <div className="history-page">
-      {/* Integração com sidebar: renderizada pela seção ativa "history". */}
       <section className="hero history-hero">
         <div>
           <h1>Histórico</h1>
-          <p>Consulte pedidos, separações, evidências e decisões administrativas.</p>
-        </div>
-        <div className="hero-actions">
-          <button className="btn btn-secondary" type="button" onClick={() => setFeedback('Exportação será integrada ao backend em uma próxima etapa.')}>Exportar relatório</button>
+          <p>Consulte eventos reais persistidos no sistema. Filtre por tipo, período ou texto.</p>
         </div>
       </section>
 
-      {feedback && <div className="history-feedback" role="status">{feedback}</div>}
+      {error && <div className="history-feedback" role="status">{error}</div>}
 
       <section className="history-stats-grid">
-        <StatCard icon={<span />} value="128" label="Pedidos concluídos" description="Finalizados no histórico" />
-        <StatCard icon={<span />} value="14" label="Pedidos com observação" description="Exigiram ação do ADMIN" />
-        <StatCard icon={<span />} value="1.964" label="Fotos registradas" description="Evidências de coleta" />
-        <StatCard icon={<span />} value="87" label="Ações administrativas" description="Decisões registradas" />
+        {cards.map((c) => (
+          <StatCard key={c.label} icon={<span />} value={loadingSummary ? '…' : c.value} label={c.label} description={c.description} />
+        ))}
       </section>
 
       <section className="history-layout">
         <div className="history-main">
           <div className="card history-toolbar">
             <div className="history-filters">
-              {FILTERS.map((item) => <button key={item} className={`chip-filter${filter === item ? ' active' : ''}`} type="button" onClick={() => setFilter(item)}>{item}</button>)}
+              {FILTER_TYPES.map((item) => (
+                <button
+                  key={item.value || 'all'}
+                  className={`chip-filter${filterType === item.value ? ' active' : ''}`}
+                  type="button"
+                  onClick={() => setFilterType(item.value)}>
+                  {item.label}
+                </button>
+              ))}
             </div>
             <div className="history-periods">
-              {PERIODS.map((item) => <button key={item.id} className={`history-period${period === item.id ? ' active' : ''}`} type="button" onClick={() => setPeriod(item.id)}>{item.label}</button>)}
+              {PERIODS.map((item) => (
+                <button
+                  key={item.id}
+                  className={`history-period${period === item.id ? ' active' : ''}`}
+                  type="button"
+                  onClick={() => setPeriod(item.id)}>
+                  {item.label}
+                </button>
+              ))}
             </div>
-            <label className="history-search"><span>⌕</span><input placeholder="Buscar por DAV, cliente ou responsável..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>
-            <button className={`history-pending-toggle${onlyPending ? ' active' : ''}`} type="button" onClick={() => setOnlyPending((value) => !value)}>Somente eventos com pendência</button>
+            <label className="history-search">
+              <span>⌕</span>
+              <input
+                placeholder="Buscar por DAV, cliente, responsável ou texto…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)} />
+            </label>
+            <button
+              className={`history-pending-toggle${onlyPending ? ' active' : ''}`}
+              type="button"
+              onClick={() => setOnlyPending((v) => !v)}>
+              Somente eventos com pendência
+            </button>
           </div>
 
           <div className="card history-table-card">
-            {filteredEvents.length === 0 ? (
-              <div className="history-empty">Nenhum evento encontrado para esta busca.</div>
+            {loadingEvents ? (
+              <div className="history-empty">Carregando eventos…</div>
+            ) : events.length === 0 ? (
+              <div className="history-empty">
+                Nenhum evento registrado para os filtros atuais.
+              </div>
             ) : (
               <>
                 <table className="history-table">
-                  <thead><tr><th>Data/hora</th><th>DAV</th><th>Cliente</th><th>Evento</th><th>Responsável</th><th>Status</th><th>Evidências</th><th>Ação</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>Data/hora</th>
+                      <th>DAV</th>
+                      <th>Cliente</th>
+                      <th>Evento</th>
+                      <th>Responsável</th>
+                      <th>Status</th>
+                      <th>Evidências</th>
+                      <th>Ação</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    {filteredEvents.map((item) => (
-                      <tr key={item.id} className={selected?.id === item.id ? 'selected' : ''} onClick={() => setSelected(item)}>
-                        <td><span className="history-date">{item.datetime}</span></td>
-                        <td><span className="dav-id">{item.dav}</span></td>
-                        <td><strong>{item.client}</strong></td>
-                        <td><span className="history-event-dot" /> {item.event}</td>
-                        <td><span className="history-muted">{item.responsible}</span></td>
+                    {events.map((item) => (
+                      <tr
+                        key={item.id}
+                        className={selected?.id === item.id ? 'selected' : ''}
+                        onClick={() => setSelected(item)}>
+                        <td><span className="history-date">{formatDateTime(item.createdAt)}</span></td>
+                        <td><span className="dav-id">{item.davNumber ?? '—'}</span></td>
+                        <td><strong>{item.clientName ?? '—'}</strong></td>
+                        <td><span className="history-event-dot" /> {item.title}</td>
+                        <td><span className="history-muted">{item.responsibleName ?? '—'}</span></td>
                         <td><EventStatus status={item.status} /></td>
-                        <td><span className="pending-pill zero">{item.evidence}</span></td>
-                        <td><button className="history-action" type="button" onClick={(e) => { e.stopPropagation(); openEvent(item); }}>{item.action}</button></td>
+                        <td><span className="pending-pill zero">{evidenceLabel(item)}</span></td>
+                        <td>
+                          <button
+                            className="history-action"
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); openEvent(item); }}>
+                            {deriveAction(item)}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 <div className="history-mobile-list">
-                  {filteredEvents.map((item) => (
+                  {events.map((item) => (
                     <article className="history-mobile-card" key={item.id} onClick={() => setSelected(item)}>
-                      <div><span className="history-date">{item.datetime}</span><strong>{item.event}</strong><small>{item.dav} · {item.client}</small></div>
+                      <div>
+                        <span className="history-date">{formatDateTime(item.createdAt)}</span>
+                        <strong>{item.title}</strong>
+                        <small>{item.davNumber ?? '—'} · {item.clientName ?? '—'}</small>
+                      </div>
                       <EventStatus status={item.status} />
-                      <button className="btn btn-primary btn-sm" type="button" onClick={(e) => { e.stopPropagation(); openEvent(item); }}>{item.action}</button>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); openEvent(item); }}>
+                        {deriveAction(item)}
+                      </button>
                     </article>
                   ))}
                 </div>
               </>
             )}
           </div>
-
-          <section className="history-evidence-grid">
-            {['MDF Branco 18mm', 'Fita de borda', 'Parafuso 3.5mm'].map((name, index) => (
-              <div className="card history-evidence-card" key={name}>
-                <div className="history-photo-placeholder">Foto</div>
-                <strong>{name}</strong>
-                <span>DAV 00000001131{index} · Hoje 10:{index}5</span>
-              </div>
-            ))}
-          </section>
         </div>
 
         <aside className="card history-side-card">
-          <h2>Resumo do pedido selecionado</h2>
-          {!selected ? <p>Selecione um evento para ver o resumo.</p> : (
+          <h2>Resumo do evento selecionado</h2>
+          {!selected ? (
+            <p>Selecione um evento para ver o resumo.</p>
+          ) : (
             <div className="history-summary">
-              <span>DAV</span><strong>{selected.dav}</strong>
-              <span>Cliente</span><strong>{selected.client}</strong>
-              <span>Status atual</span><EventStatus status={selected.status} />
-              <span>Estoquista responsável</span><strong>{selected.responsible}</strong>
-              <span>Início</span><strong>Hoje 09:40</strong>
-              <span>Fim</span><strong>{selected.status === 'Concluído' ? 'Hoje 11:02' : '—'}</strong>
-              <span>Duração</span><strong>1h22</strong>
-              <span>Itens coletados</span><strong>14</strong>
-              <span>Itens não encontrados</span><strong>{selected.status === 'Observação' ? 1 : 0}</strong>
-              <span>Fotos anexadas</span><strong>{selected.evidence}</strong>
-              <span>Decisões do ADMIN</span><strong>{selected.type === 'Decisão ADMIN' ? 1 : 0}</strong>
+              <span>Tipo</span><strong>{labelForEventType(selected.eventType)}</strong>
+              <span>DAV</span><strong>{selected.davNumber ?? '—'}</strong>
+              <span>Cliente</span><strong>{selected.clientName ?? '—'}</strong>
+              <span>Status</span><EventStatus status={selected.status} />
+              <span>Responsável</span><strong>{selected.responsibleName ?? '—'}</strong>
+              <span>Função</span><strong>{selected.responsibleRole ?? '—'}</strong>
+              <span>Quando</span><strong>{formatDateTime(selected.createdAt)}</strong>
+              <span>Evidência</span><strong>{evidenceLabel(selected)}</strong>
             </div>
           )}
         </aside>
       </section>
 
       {modalEvent && (
-        <div className="history-modal-overlay open" role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) setModalEvent(null); }}>
+        <div
+          className="history-modal-overlay open"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => { if (e.target === e.currentTarget) setModalEvent(null); }}>
           <div className="history-modal card">
-            <div className="history-modal-head"><div><h2>{modalEvent.event}</h2><p>{modalEvent.dav} · {modalEvent.client}</p></div><button className="modal-close" type="button" onClick={() => setModalEvent(null)}>×</button></div>
-            <div className="history-detail-grid">
-              <span>Tipo</span><strong>{modalEvent.type}</strong>
-              <span>Responsável</span><strong>{modalEvent.responsible}</strong>
-              <span>Data/hora</span><strong>{modalEvent.datetime}</strong>
-              <span>Evidências</span><strong>{modalEvent.evidence}</strong>
-              <p>{modalEvent.type === 'Item coletado' ? 'SKU MDF-BR-18 coletado com 1 foto vinculada.' : modalEvent.type === 'Não encontrado' ? 'Motivo informado: item ausente no local. Pedido segue em observação.' : modalEvent.type === 'Ignorado automático' ? 'Regra SERV-CORTE aplicada. O item permanece registrado para auditoria.' : 'Evento registrado no histórico operacional do StockRoute.'}</p>
-              {modalEvent.type === 'Item coletado' && <div className="history-photo-placeholder wide">Placeholder de foto</div>}
+            <div className="history-modal-head">
+              <div>
+                <h2>{modalEvent.title}</h2>
+                <p>{(modalEvent.davNumber ?? '—')} · {modalEvent.clientName ?? '—'}</p>
+              </div>
+              <button className="modal-close" type="button" onClick={() => setModalEvent(null)}>×</button>
             </div>
-            <div className="history-modal-foot"><button className="btn btn-secondary" type="button" onClick={() => setModalEvent(null)}>Fechar</button></div>
+            <div className="history-detail-grid">
+              <span>Tipo</span><strong>{labelForEventType(modalEvent.eventType)}</strong>
+              <span>Responsável</span><strong>{modalEvent.responsibleName ?? '—'} ({modalEvent.responsibleRole ?? '—'})</strong>
+              <span>Data/hora</span><strong>{formatDateTime(modalEvent.createdAt)}</strong>
+              <span>Status</span><EventStatus status={modalEvent.status} />
+              <span>Evidência</span>
+              <strong>
+                {modalEvent.evidenceUrl ? (
+                  <a href={modalEvent.evidenceUrl} target="_blank" rel="noreferrer">{evidenceLabel(modalEvent)}</a>
+                ) : (
+                  evidenceLabel(modalEvent)
+                )}
+              </strong>
+              {modalEvent.description && (
+                <>
+                  <span>Descrição</span>
+                  <strong className="history-description">{modalEvent.description}</strong>
+                </>
+              )}
+              <span>Metadata</span>
+              <div>{renderMetadata(modalEvent.metadata)}</div>
+            </div>
+            <div className="history-modal-foot">
+              <button className="btn btn-secondary" type="button" onClick={() => setModalEvent(null)}>Fechar</button>
+            </div>
           </div>
         </div>
       )}

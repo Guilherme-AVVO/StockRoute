@@ -5,6 +5,12 @@ import {
   setIgnoredDavItemStatus,
   deleteIgnoredDavItem,
 } from '../services/ignoredDavItemsService.js';
+import { logAuditEvent, AUDIT_EVENT_TYPES } from '../services/auditService.js';
+
+function describeRule(rule) {
+  const value = rule.rawDescription ?? rule.manufacturerName ?? rule.rawSku ?? '—';
+  return `${rule.matchType} "${value}"`;
+}
 
 // Converte linha do banco (snake_case) para camelCase para o frontend.
 function toDto(row) {
@@ -43,7 +49,17 @@ export async function createIgnoredDavItemController(req, res, next) {
       ...(req.body ?? {}),
       createdBy: req.user.id,
     });
-    return res.status(201).json({ rule: toDto(rule), reapplySummary });
+    const dto = toDto(rule);
+    await logAuditEvent({
+      eventType:   AUDIT_EVENT_TYPES.HIDE_RULE_CREATED,
+      entityType:  'hide_rule',
+      entityId:    dto.id,
+      status:      'Aplicado',
+      title:       'Regra de ocultação criada',
+      description: `Nova regra: ${describeRule(dto)}. Motivo: ${dto.reason}`,
+      metadata:    { reapplySummary, matchType: dto.matchType, reason: dto.reason },
+    }, { req });
+    return res.status(201).json({ rule: dto, reapplySummary });
   } catch (err) {
     next(err);
   }
@@ -52,7 +68,17 @@ export async function createIgnoredDavItemController(req, res, next) {
 export async function updateIgnoredDavItemController(req, res, next) {
   try {
     const { rule, reapplySummary } = await updateIgnoredDavItem(req.params.id, req.body ?? {});
-    return res.json({ rule: toDto(rule), reapplySummary });
+    const dto = toDto(rule);
+    await logAuditEvent({
+      eventType:   AUDIT_EVENT_TYPES.HIDE_RULE_UPDATED,
+      entityType:  'hide_rule',
+      entityId:    dto.id,
+      status:      'Aplicado',
+      title:       'Regra de ocultação atualizada',
+      description: `Regra ${describeRule(dto)} foi editada.`,
+      metadata:    { reapplySummary, matchType: dto.matchType },
+    }, { req });
+    return res.json({ rule: dto, reapplySummary });
   } catch (err) {
     next(err);
   }
@@ -61,7 +87,17 @@ export async function updateIgnoredDavItemController(req, res, next) {
 export async function setIgnoredDavItemStatusController(req, res, next) {
   try {
     const { rule, reapplySummary } = await setIgnoredDavItemStatus(req.params.id, req.body?.active);
-    return res.json({ rule: toDto(rule), reapplySummary });
+    const dto = toDto(rule);
+    await logAuditEvent({
+      eventType:   AUDIT_EVENT_TYPES.HIDE_RULE_STATUS_CHANGED,
+      entityType:  'hide_rule',
+      entityId:    dto.id,
+      status:      dto.active ? 'Aplicado' : 'Desativado',
+      title:       dto.active ? 'Regra reativada' : 'Regra desativada',
+      description: `Regra ${describeRule(dto)} ${dto.active ? 'ativada' : 'desativada'}.`,
+      metadata:    { reapplySummary, active: dto.active },
+    }, { req });
+    return res.json({ rule: dto, reapplySummary });
   } catch (err) {
     next(err);
   }
@@ -70,7 +106,17 @@ export async function setIgnoredDavItemStatusController(req, res, next) {
 export async function deleteIgnoredDavItemController(req, res, next) {
   try {
     const { rule, reapplySummary } = await deleteIgnoredDavItem(req.params.id);
-    return res.json({ rule: toDto(rule), reapplySummary });
+    const dto = toDto(rule);
+    await logAuditEvent({
+      eventType:   AUDIT_EVENT_TYPES.HIDE_RULE_DELETED,
+      entityType:  'hide_rule',
+      entityId:    dto.id,
+      status:      'Desativado',
+      title:       'Regra de ocultação apagada',
+      description: `Regra ${describeRule(dto)} foi apagada (soft delete).`,
+      metadata:    { reapplySummary },
+    }, { req });
+    return res.json({ rule: dto, reapplySummary });
   } catch (err) {
     next(err);
   }

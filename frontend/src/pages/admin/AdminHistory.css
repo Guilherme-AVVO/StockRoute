@@ -77,3 +77,17 @@
 @media (max-width: 560px) {
   .history-stats-grid, .history-evidence-grid, .history-summary, .history-detail-grid { grid-template-columns: 1fr; }
 }
+
+/* Histórico real — status extras e metadata */
+.history-status.aplicado { color: var(--primary); background: var(--primary-fixed); }
+.history-status.desativado { color: #6a6a78; background: #ececf5; }
+.history-status.pendente { color: #c25100; background: #ffe0c8; }
+.history-status.erro { color: var(--error); background: var(--error-bg); }
+.history-status.sistema { color: #6a6a78; background: #ececf5; }
+
+.history-description { grid-column: 1 / -1; margin: 8px 0 0; padding: 12px; border-radius: var(--radius-md); background: var(--surface-low); color: var(--on-surface-variant); line-height: 1.5; font-weight: 500; }
+
+.history-metadata-list { grid-column: 1 / -1; margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.history-metadata-list li { display: grid; grid-template-columns: 160px 1fr; gap: 12px; font-size: 12px; padding: 6px 10px; background: var(--surface-low); border-radius: var(--radius-sm); }
+.history-metadata-list li span { color: var(--on-surface-variant); }
+.history-metadata-list li strong { word-break: break-word; }
