@@ -39,11 +39,11 @@ export async function listIgnoredDavItemsController(req, res, next) {
 
 export async function createIgnoredDavItemController(req, res, next) {
   try {
-    const row = await createIgnoredDavItem({
+    const { rule, reapplySummary } = await createIgnoredDavItem({
       ...(req.body ?? {}),
       createdBy: req.user.id,
     });
-    return res.status(201).json(toDto(row));
+    return res.status(201).json({ rule: toDto(rule), reapplySummary });
   } catch (err) {
     next(err);
   }
@@ -51,8 +51,8 @@ export async function createIgnoredDavItemController(req, res, next) {
 
 export async function updateIgnoredDavItemController(req, res, next) {
   try {
-    const row = await updateIgnoredDavItem(req.params.id, req.body ?? {});
-    return res.json(toDto(row));
+    const { rule, reapplySummary } = await updateIgnoredDavItem(req.params.id, req.body ?? {});
+    return res.json({ rule: toDto(rule), reapplySummary });
   } catch (err) {
     next(err);
   }
@@ -60,8 +60,8 @@ export async function updateIgnoredDavItemController(req, res, next) {
 
 export async function setIgnoredDavItemStatusController(req, res, next) {
   try {
-    const row = await setIgnoredDavItemStatus(req.params.id, req.body?.active);
-    return res.json(toDto(row));
+    const { rule, reapplySummary } = await setIgnoredDavItemStatus(req.params.id, req.body?.active);
+    return res.json({ rule: toDto(rule), reapplySummary });
   } catch (err) {
     next(err);
   }
@@ -69,8 +69,8 @@ export async function setIgnoredDavItemStatusController(req, res, next) {
 
 export async function deleteIgnoredDavItemController(req, res, next) {
   try {
-    const row = await deleteIgnoredDavItem(req.params.id);
-    return res.json(toDto(row));
+    const { rule, reapplySummary } = await deleteIgnoredDavItem(req.params.id);
+    return res.json({ rule: toDto(rule), reapplySummary });
   } catch (err) {
     next(err);
   }

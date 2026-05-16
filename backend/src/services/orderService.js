@@ -9,6 +9,7 @@ import {
   findOrderById,
   findOrderByNumber,
   findOrderItems,
+  findHiddenOrderItems,
   createOrder,
   updateOrderStatus,
   createOrderItem,
@@ -243,18 +244,41 @@ function toHiddenItemDto(row) {
   };
 }
 
+// Converte um order_item oculto por regra para o mesmo formato exibido em hiddenItems.
+function toHiddenOrderItemDto(row) {
+  return {
+    id:                    row.id,
+    quantity:              row.quantity,
+    unit:                  row.product_unit,
+    rawSku:                row.product_sku,
+    rawDescription:        row.product_name,
+    manufacturerReference: row.product_manufacturer_reference ?? null,
+    manufacturerName:      row.product_manufacturer_name ?? null,
+    status:                'HIDDEN',
+    ignoredRuleId:         row.ignored_rule_id ?? null,
+    ignoredReason:         row.hide_reason ?? row.rule_reason ?? null,
+    ruleMatchType:         row.rule_match_type ?? null,
+    createdAt:             row.created_at,
+    source:                'order_item',
+  };
+}
+
 export async function getOrder(id, { includeHidden = false } = {}) {
-  const [order, items, hiddenItems] = await Promise.all([
+  const [order, items, hiddenUnlinked, hiddenOrderItems] = await Promise.all([
     findOrderById(id),
     findOrderItems(id),
     includeHidden ? listHiddenDavItemsByOrder(id) : Promise.resolve([]),
+    includeHidden ? findHiddenOrderItems(id)      : Promise.resolve([]),
   ]);
   if (!order) return null;
 
   return {
     ...toOrderDto(order),
-    items:       items.map(toItemDto),
-    hiddenItems: hiddenItems.map(toHiddenItemDto),
+    items: items.map(toItemDto),
+    hiddenItems: [
+      ...hiddenUnlinked.map(toHiddenItemDto),
+      ...hiddenOrderItems.map(toHiddenOrderItemDto),
+    ],
   };
 }
 

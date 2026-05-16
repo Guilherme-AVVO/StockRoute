@@ -14,6 +14,9 @@ export async function listIgnoredDavItems({ includeInactive = false } = {}) {
   return data;
 }
 
+// As mutações de regra agora devolvem { rule, reapplySummary } — o backend
+// reaplica regras a todos os itens DAV/pedidos existentes após cada mutação.
+// O caller pode mostrar o resumo ao ADMIN e recarregar as listas afetadas.
 export async function createIgnoredDavItem({
   rawDescription,
   manufacturerName,
@@ -60,4 +63,14 @@ export async function deleteIgnoredDavItem(id) {
   const data = await res.json();
   if (!res.ok) throw new Error(extractError(res, data, 'Erro ao apagar regra'));
   return data;
+}
+
+// Formata o resumo retornado por uma mutação para exibir como feedback.
+// summary: { evaluated, hidden, unhidden, keptHidden, keptVisible, preservedManual }
+export function formatReapplySummary(summary) {
+  if (!summary) return null;
+  if (summary.error) {
+    return `Atenção: reaplicação automática falhou (${summary.error}). Estado pode estar inconsistente.`;
+  }
+  return `Regras reaplicadas: ${summary.evaluated} itens avaliados, ${summary.hidden} ocultados, ${summary.unhidden} desocultados.`;
 }

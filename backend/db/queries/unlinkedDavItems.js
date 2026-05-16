@@ -19,6 +19,7 @@ const unlinkedWithOrderFields = sql`
   u.status,
   u.product_id,
   u.ignored_rule_id,
+  u.hidden_manually,
   u.resolution_note,
   u.resolved_at,
   u.resolved_by,
@@ -86,21 +87,22 @@ export async function createUnlinkedDavItem({
   status = 'PENDING',
   ignoredRuleId = null,
   resolutionNote = null,
+  hiddenManually = false,
 }) {
   const rows = await sql`
     INSERT INTO unlinked_dav_items (
       order_id, raw_sku, raw_description, quantity, unit,
       manufacturer_reference, manufacturer_name,
-      status, ignored_rule_id, resolution_note
+      status, ignored_rule_id, resolution_note, hidden_manually
     )
     VALUES (
       ${orderId}, ${rawSku ?? null}, ${rawDescription}, ${quantity}, ${unit ?? null},
       ${manufacturerReference ?? null}, ${manufacturerName ?? null},
-      ${status}, ${ignoredRuleId}, ${resolutionNote}
+      ${status}, ${ignoredRuleId}, ${resolutionNote}, ${hiddenManually}
     )
     RETURNING id, order_id, raw_sku, raw_description, quantity, unit,
               manufacturer_reference, manufacturer_name,
-              status, ignored_rule_id, resolution_note, created_at
+              status, ignored_rule_id, resolution_note, hidden_manually, created_at
   `;
   return rows[0];
 }
@@ -126,22 +128,90 @@ export async function updateUnlinkedDavItemStatus(id, { status, productId = null
   return rows[0] ?? null;
 }
 
-export async function markUnlinkedDavItemHidden(id, { ignoredRuleId, resolutionNote, resolvedBy }) {
+export async function markUnlinkedDavItemHidden(id, { ignoredRuleId, resolutionNote, resolvedBy, hiddenManually = false }) {
   const rows = await sql`
     UPDATE unlinked_dav_items
     SET status          = 'HIDDEN',
         product_id      = NULL,
         ignored_rule_id = ${ignoredRuleId},
         resolution_note = ${resolutionNote},
+        hidden_manually = ${hiddenManually},
         resolved_at     = NOW(),
         resolved_by     = ${resolvedBy},
         updated_at      = NOW()
     WHERE id = ${id}
     RETURNING id, order_id, raw_sku, raw_description, quantity, unit,
               manufacturer_reference, manufacturer_name,
-              status, product_id, ignored_rule_id,
+              status, product_id, ignored_rule_id, hidden_manually,
               resolution_note, resolved_at, resolved_by,
               created_at, updated_at
+  `;
+  return rows[0] ?? null;
+}
+
+// Lista TODOS os unlinked_dav_items elegíveis para reaplicação:
+// PENDING (podem virar HIDDEN se baterem regra)
+// HIDDEN com hidden_manually=FALSE (podem voltar para PENDING se nenhuma regra bater)
+// LINKED é ignorado — já foi resolvido criando order_item.
+export async function listUnlinkedDavItemsForReapply() {
+  return sql`
+    SELECT
+      u.id, u.order_id, u.raw_sku, u.raw_description, u.quantity, u.unit,
+      u.manufacturer_reference, u.manufacturer_name,
+      u.status, u.product_id, u.ignored_rule_id, u.hidden_manually,
+      u.resolution_note
+    FROM unlinked_dav_items u
+    WHERE u.status = 'PENDING'
+       OR (u.status = 'HIDDEN' AND u.hidden_manually = FALSE)
+  `;
+}
+
+// Reaplicação: marca PENDING como HIDDEN por regra.
+export async function markPendingAsHiddenByRule(id, { ignoredRuleId, resolutionNote }) {
+  const rows = await sql`
+    UPDATE unlinked_dav_items
+    SET status          = 'HIDDEN',
+        ignored_rule_id = ${ignoredRuleId},
+        resolution_note = ${resolutionNote},
+        hidden_manually = FALSE,
+        updated_at      = NOW()
+    WHERE id = ${id}
+      AND status = 'PENDING'
+    RETURNING id, status
+  `;
+  return rows[0] ?? null;
+}
+
+// Reaplicação: HIDDEN por regra que continua batendo (regra trocou de id).
+export async function updateHiddenRuleBinding(id, { ignoredRuleId, resolutionNote }) {
+  const rows = await sql`
+    UPDATE unlinked_dav_items
+    SET ignored_rule_id = ${ignoredRuleId},
+        resolution_note = ${resolutionNote},
+        updated_at      = NOW()
+    WHERE id = ${id}
+      AND status = 'HIDDEN'
+      AND hidden_manually = FALSE
+    RETURNING id, status, ignored_rule_id
+  `;
+  return rows[0] ?? null;
+}
+
+// Reaplicação: HIDDEN por regra que não bate mais → volta para PENDING.
+// Não toca em itens marcados como hidden_manually.
+export async function revertHiddenToPending(id) {
+  const rows = await sql`
+    UPDATE unlinked_dav_items
+    SET status          = 'PENDING',
+        ignored_rule_id = NULL,
+        resolution_note = NULL,
+        resolved_at     = NULL,
+        resolved_by     = NULL,
+        updated_at      = NOW()
+    WHERE id = ${id}
+      AND status = 'HIDDEN'
+      AND hidden_manually = FALSE
+    RETURNING id, status
   `;
   return rows[0] ?? null;
 }

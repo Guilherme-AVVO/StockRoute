@@ -8,6 +8,7 @@ import {
   updateIgnoredDavItem,
   setIgnoredDavItemActive,
   deleteIgnoredDavItem,
+  formatReapplySummary,
 } from '../../services/ignoredDavItemsService.js';
 import {
   listUnlinkedDavItems,
@@ -156,7 +157,7 @@ function HiddenItemsList({ loading, items, onView }) {
               <td><span className="ignored-code-ref">{item.rawSku ?? item.manufacturerReference ?? '—'}</span></td>
               <td><span className="ignored-description">{item.rawDescription ?? '—'}</span></td>
               <td><span className="ignored-reason">{item.ignoredReason ?? item.resolutionNote ?? '—'}</span></td>
-              <td><span className="ignored-by-rule-badge">{item.ignoredRuleId ? 'Oculto por regra' : 'Oculto manualmente'}</span></td>
+              <td><span className="ignored-by-rule-badge">{item.hiddenManually ? 'Oculto manualmente' : 'Oculto por regra'}</span></td>
               <td><span className="ignored-muted">{formatDate(item.createdAt)}</span></td>
               <td>
                 <div className="ignored-actions">
@@ -176,7 +177,7 @@ function HiddenItemsList({ loading, items, onView }) {
                 <span className="dav-id">DAV {item.davNumber ?? '—'}</span>
                 <strong style={{ marginTop: 6 }}>{item.rawDescription ?? '—'}</strong>
               </div>
-              <span className="ignored-by-rule-badge">{item.ignoredRuleId ? 'Oculto por regra' : 'Oculto manualmente'}</span>
+              <span className="ignored-by-rule-badge">{item.hiddenManually ? 'Oculto manualmente' : 'Oculto por regra'}</span>
             </div>
             <div className="ignored-mobile-grid">
               <div className="ignored-mobile-wide">
@@ -536,16 +537,27 @@ export default function AdminIgnoredItems() {
     setFormLoading(false);
   }
 
+  // Recarrega todas as listas afetadas por uma reaplicação de regras
+  // (rules, ocultos e não vinculados podem mudar simultaneamente).
+  const reloadAllAfterReapply = useCallback(() => {
+    reloadRules();
+    reloadHidden();
+    reloadUnlinked();
+  }, [reloadRules, reloadHidden, reloadUnlinked]);
+
   async function confirmToggleRuleStatus() {
     if (!modal?.rule) return;
     setFormLoading(true);
     try {
-      await setIgnoredDavItemActive(modal.rule.id, !modal.rule.active);
-      setFeedback(modal.rule.active
-        ? 'Regra desativada. Ela não será aplicada em novos DAVs.'
-        : 'Regra ativada com sucesso.');
+      setFeedback('Reaplicando regras aos itens existentes…');
+      const { reapplySummary } = await setIgnoredDavItemActive(modal.rule.id, !modal.rule.active);
+      const summaryText = formatReapplySummary(reapplySummary);
+      const head = modal.rule.active
+        ? 'Regra desativada.'
+        : 'Regra ativada.';
+      setFeedback(summaryText ? `${head} ${summaryText}` : head);
       closeModal();
-      reloadRules();
+      reloadAllAfterReapply();
     } catch (err) {
       setFeedback(err.message || 'Erro ao alterar status da regra');
       closeModal();
@@ -556,10 +568,12 @@ export default function AdminIgnoredItems() {
     if (!modal?.rule) return;
     setFormLoading(true);
     try {
-      await deleteIgnoredDavItem(modal.rule.id);
-      setFeedback('Regra apagada com sucesso.');
+      setFeedback('Reaplicando regras aos itens existentes…');
+      const { reapplySummary } = await deleteIgnoredDavItem(modal.rule.id);
+      const summaryText = formatReapplySummary(reapplySummary);
+      setFeedback(summaryText ? `Regra apagada. ${summaryText}` : 'Regra apagada com sucesso.');
       closeModal();
-      reloadRules();
+      reloadAllAfterReapply();
     } catch (err) {
       setFormError(err.message || 'Erro ao apagar regra');
     } finally {
@@ -585,15 +599,16 @@ export default function AdminIgnoredItems() {
       }
       else payload.rawDescription = ruleForm.value.trim();
 
-      if (modal?.rule) {
-        await updateIgnoredDavItem(modal.rule.id, payload);
-        setFeedback('Regra editada com sucesso.');
-      } else {
-        await createIgnoredDavItem(payload);
-        setFeedback('Regra de ocultação criada e ativa para os próximos DAVs.');
-      }
+      setFeedback('Reaplicando regras aos itens existentes…');
+      const isEdit = !!modal?.rule;
+      const response = isEdit
+        ? await updateIgnoredDavItem(modal.rule.id, payload)
+        : await createIgnoredDavItem(payload);
+      const summaryText = formatReapplySummary(response?.reapplySummary);
+      const head = isEdit ? 'Regra editada.' : 'Regra de ocultação criada.';
+      setFeedback(summaryText ? `${head} ${summaryText}` : head);
       closeModal();
-      reloadRules();
+      reloadAllAfterReapply();
     } catch (err) {
       setFormError(err.message || 'Erro ao criar regra');
     } finally {
@@ -854,7 +869,7 @@ export default function AdminIgnoredItems() {
                   <span>Quantidade</span><strong>{modal.item.quantity} {modal.item.unit ?? ''}</strong>
                   <span>Motivo</span><strong>{modal.item.ignoredReason ?? modal.item.resolutionNote ?? '—'}</strong>
                   <span>Regra</span><strong>{modal.item.ruleMatchType ?? '—'}</strong>
-                  <span>Origem</span><strong>{modal.item.ignoredRuleId ? 'Oculto por regra' : 'Oculto manualmente'}</strong>
+                  <span>Origem</span><strong>{modal.item.hiddenManually ? 'Oculto manualmente' : 'Oculto por regra'}</strong>
                   <span>Criado em</span><strong>{formatDate(modal.item.createdAt)}</strong>
                 </div>
               </div>

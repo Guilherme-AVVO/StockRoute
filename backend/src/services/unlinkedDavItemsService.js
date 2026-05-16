@@ -12,7 +12,7 @@ import {
   findProductBySku,
   createProduct,
 } from '../../db/queries/products.js';
-import { createOrderItem } from '../../db/queries/orders.js';
+import { createOrderItem, listAllHiddenOrderItems } from '../../db/queries/orders.js';
 import { createIgnoredDavItem } from './ignoredDavItemsService.js';
 
 const VALID_UNITS = ['UN', 'CX', 'SC', 'PC', 'CT', 'PR', 'M'];
@@ -36,6 +36,8 @@ function toDto(row) {
     ignoredReason:         row.resolution_note ?? row.rule_reason ?? null,
     ruleMatchType:         row.rule_match_type ?? null,
     resolutionNote:        row.resolution_note ?? null,
+    hiddenManually:        row.hidden_manually ?? false,
+    source:                'unlinked',
     resolvedAt:            row.resolved_at ?? null,
     resolvedBy:            row.resolved_by ?? null,
     createdAt:             row.created_at,
@@ -43,9 +45,46 @@ function toDto(row) {
   };
 }
 
+// Converte um order_item oculto por regra para o mesmo DTO de unlinked.
+// Permite que a aba "Ocultos" mostre num único stream tanto unlinked HIDDEN
+// quanto order_items hidden=TRUE.
+function toHiddenOrderItemDto(row) {
+  return {
+    id:                    row.id,
+    orderId:               row.order_id,
+    davNumber:             row.dav_number,
+    customerName:          row.customer_name,
+    rawSku:                row.product_sku,
+    rawDescription:        row.product_name,
+    quantity:              row.quantity,
+    unit:                  row.product_unit,
+    manufacturerReference: row.product_manufacturer_reference ?? null,
+    manufacturerName:      row.product_manufacturer_name ?? null,
+    status:                'HIDDEN',
+    productId:             row.product_id ?? null,
+    ignoredRuleId:         row.ignored_rule_id ?? null,
+    ignoredReason:         row.hide_reason ?? row.rule_reason ?? null,
+    ruleMatchType:         row.rule_match_type ?? null,
+    resolutionNote:        row.hide_reason ?? null,
+    hiddenManually:        false,
+    source:                'order_item',
+    createdAt:             row.created_at,
+    updatedAt:             row.updated_at,
+  };
+}
+
 export async function getUnlinkedDavItems({ status = 'PENDING' } = {}) {
   const rows = await listUnlinkedQuery({ status });
-  return rows.map(toDto);
+  const unlinked = rows.map(toDto);
+
+  // Para a aba "Ocultos" devolvemos também os order_items hidden=TRUE.
+  // Esses não entrariam em unlinked_dav_items porque tinham produto na
+  // importação — passaram a oculto somente após reaplicação de regra.
+  if (status === 'HIDDEN') {
+    const hiddenOrderItems = await listAllHiddenOrderItems();
+    return [...unlinked, ...hiddenOrderItems.map(toHiddenOrderItemDto)];
+  }
+  return unlinked;
 }
 
 // Vincula item DAV a um produto existente no catálogo.
@@ -156,17 +195,20 @@ export async function hideUnlinkedItem(itemId, reason, userId) {
     throw { status: 400, message: 'Motivo da ocultação é obrigatório' };
   }
 
-  const rule = await createIgnoredDavItem({
+  const { rule } = await createIgnoredDavItem({
     matchType:      'NAME_CONTAINS',
     rawDescription: item.raw_description,
     reason:         String(reason).trim(),
     createdBy:      userId,
   });
 
+  // Ocultação manual: marca hidden_manually=TRUE para que reaplicações
+  // posteriores nunca desfaçam essa decisão explícita do ADMIN.
   const updated = await markUnlinkedDavItemHidden(itemId, {
     ignoredRuleId:  rule.id,
     resolutionNote: String(reason).trim(),
     resolvedBy:     userId,
+    hiddenManually: true,
   });
 
   return toDto({ ...updated, dav_number: item.dav_number, customer_name: item.customer_name });

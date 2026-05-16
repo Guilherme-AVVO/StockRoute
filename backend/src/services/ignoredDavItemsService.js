@@ -93,10 +93,12 @@ function normalizeRulePayload(data = {}, { requireCreatedBy = false } = {}) {
 }
 
 export async function createIgnoredDavItem(data = {}) {
-  return insertIgnoredDavItem({
+  const rule = await insertIgnoredDavItem({
     ...normalizeRulePayload(data, { requireCreatedBy: true }),
     createdBy: data.createdBy,
   });
+  const reapplySummary = await runReapplyAfterMutation();
+  return { rule, reapplySummary };
 }
 
 export async function listIgnoredDavItems(options) {
@@ -116,7 +118,8 @@ export async function updateIgnoredDavItem(id, data = {}) {
     active: existing.active,
   }));
   if (!updated) throw { status: 404, message: 'Regra não encontrada' };
-  return updated;
+  const reapplySummary = await runReapplyAfterMutation();
+  return { rule: updated, reapplySummary };
 }
 
 export async function setIgnoredDavItemStatus(id, active) {
@@ -127,14 +130,29 @@ export async function setIgnoredDavItemStatus(id, active) {
 
   const updated = await setIgnoredDavItemActive(id, active);
   if (!updated) throw { status: 404, message: 'Regra não encontrada' };
-  return updated;
+  const reapplySummary = await runReapplyAfterMutation();
+  return { rule: updated, reapplySummary };
 }
 
 export async function deleteIgnoredDavItem(id) {
   if (!id) throw { status: 400, message: 'ID da regra é obrigatório' };
   const deleted = await softDeleteIgnoredDavItem(id);
   if (!deleted) throw { status: 404, message: 'Regra não encontrada' };
-  return deleted;
+  const reapplySummary = await runReapplyAfterMutation();
+  return { rule: deleted, reapplySummary };
+}
+
+// Wrapper resiliente: a reaplicação não deve abortar a mutação da regra.
+// Se a reaplicação falhar, devolvemos { error } no resumo — o estado
+// consistente é recuperado na próxima reaplicação ou import de DAV.
+async function runReapplyAfterMutation() {
+  try {
+    const { reapplyHideRulesToExistingItems } = await import('./reapplyHideRulesService.js');
+    return await reapplyHideRulesToExistingItems();
+  } catch (err) {
+    console.error('[reapplyHideRules] Falha ao reaplicar regras:', err);
+    return { error: err.message };
+  }
 }
 
 // Verifica se um item extraído do DAV cai em alguma regra ativa.
