@@ -1,6 +1,6 @@
 // Página ADMIN — Itens ignorados no picking.
 // Centraliza ocorrências ocultas, regras reais de ocultação e itens DAV não vinculados.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import StatCard from '../../components/admin/StatCard.jsx';
 import {
   listIgnoredDavItems,
@@ -12,9 +12,10 @@ import {
 } from '../../services/ignoredDavItemsService.js';
 import {
   listUnlinkedDavItems,
-  linkUnlinkedItemToProduct,
-  createProductFromUnlinkedItem,
-  hideUnlinkedItem,
+  listUnlinkedDavItemGroups,
+  registerProductFromGroup,
+  linkGroupToProduct,
+  hideUnlinkedGroup,
 } from '../../services/unlinkedDavItemsService.js';
 import { listProducts } from '../../services/productService.js';
 import './AdminIgnoredItems.css';
@@ -299,10 +300,12 @@ function RulesList({ rules, onView, onEdit, onToggle, onDelete }) {
 // Lista da aba "Não vinculados" — API real
 // ============================================================
 
-function UnlinkedList({ loading, items, onLink, onRegister, onHide, onCreateRule }) {
+// Lista de GRUPOS de itens não vinculados.
+// Cada linha representa um produto não cadastrado que aparece em 1..N pedidos.
+function UnlinkedList({ loading, groups, expandedKey, onToggleExpand, onLink, onRegister, onHide, onCreateRule }) {
   if (loading) return <div className="ignored-empty"><p>Carregando itens não vinculados…</p></div>;
 
-  if (items.length === 0) {
+  if (groups.length === 0) {
     return (
       <div className="ignored-empty">
         <p>Tudo certo — nenhum item DAV sem vínculo.</p>
@@ -315,74 +318,95 @@ function UnlinkedList({ loading, items, onLink, onRegister, onHide, onCreateRule
       <table className="ignored-table">
         <thead>
           <tr>
-            <th>DAV</th>
-            <th>SKU interno</th>
+            <th>Descrição</th>
             <th>Ref. fabricante</th>
             <th>Fabricante</th>
-            <th>Descrição</th>
-            <th>Qtd.</th>
+            <th>SKU interno</th>
             <th>Un.</th>
-            <th>Cliente</th>
-            <th>Status</th>
+            <th>Ocorrências</th>
+            <th>Qtd. total</th>
+            <th>Pedidos</th>
             <th>Ações</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
-            <tr key={item.id}>
-              <td><span className="dav-id">{item.davNumber}</span></td>
-              <td><span className="ignored-code-ref">{item.rawSku || '—'}</span></td>
-              <td><span className="ignored-code-ref">{item.manufacturerReference || '—'}</span></td>
-              <td><span className="ignored-muted">{item.manufacturerName || '—'}</span></td>
-              <td><span className="ignored-description">{item.rawDescription}</span></td>
-              <td><span className="counts"><span className="num">{item.quantity}</span></span></td>
-              <td><span className="ignored-muted">{item.unit}</span></td>
-              <td><span className="client-name">{item.customerName}</span></td>
-              <td><span className="ignored-unlinked-badge">Não vinculado</span></td>
-              <td>
-                <div className="ignored-actions">
-                  <button type="button" onClick={() => onLink(item)}>Vincular</button>
-                  <button type="button" onClick={() => onRegister(item)}>Cadastrar</button>
-                  <button type="button" onClick={() => onHide(item)}>Ocultar</button>
-                  <button type="button" onClick={() => onCreateRule(item)}>Criar regra</button>
-                </div>
-              </td>
-            </tr>
+          {groups.map((g) => (
+            <Fragment key={g.groupKey}>
+              <tr>
+                <td><span className="ignored-description">{g.rawDescription || '—'}</span></td>
+                <td><span className="ignored-code-ref">{g.manufacturerReference || '—'}</span></td>
+                <td><span className="ignored-muted">{g.manufacturerName || '—'}</span></td>
+                <td><span className="ignored-code-ref">{g.sku || '—'}</span></td>
+                <td><span className="ignored-muted">{g.unit || '—'}</span></td>
+                <td><span className="counts"><span className="num">{g.occurrences}</span></span></td>
+                <td><span className="counts"><span className="num">{g.totalQuantity}</span></span></td>
+                <td>
+                  <button type="button" className="link-like" onClick={() => onToggleExpand(g.groupKey)}>
+                    {g.affectedOrdersCount} {g.affectedOrdersCount === 1 ? 'pedido' : 'pedidos'} {expandedKey === g.groupKey ? '▴' : '▾'}
+                  </button>
+                </td>
+                <td>
+                  <div className="ignored-actions">
+                    <button type="button" onClick={() => onRegister(g)}>Cadastrar</button>
+                    <button type="button" onClick={() => onLink(g)}>Vincular</button>
+                    <button type="button" onClick={() => onHide(g)}>Ocultar</button>
+                    <button type="button" onClick={() => onCreateRule(g)}>Criar regra</button>
+                  </div>
+                </td>
+              </tr>
+              {expandedKey === g.groupKey && (
+                <tr className="ignored-group-orders-row">
+                  <td colSpan="9">
+                    <div className="ignored-group-orders">
+                      <strong>Pedidos afetados:</strong>
+                      <ul>
+                        {g.orders.map((o) => (
+                          <li key={o.orderId}>
+                            DAV <span className="dav-id">{o.davNumber}</span> — {o.clientName} — qtd <strong>{o.quantity}</strong>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           ))}
         </tbody>
       </table>
 
       <div className="ignored-mobile-list">
-        {items.map((item) => (
-          <article className="ignored-mobile-card" key={item.id}>
+        {groups.map((g) => (
+          <article className="ignored-mobile-card" key={g.groupKey}>
             <div className="ignored-mobile-head">
               <div>
-                <span className="dav-id">DAV {item.davNumber}</span>
-                <strong style={{ marginTop: 4 }}>
-                  <span className="ignored-code-ref">{item.rawSku}</span>
-                </strong>
-                <span className="ignored-source-line">{item.customerName}</span>
+                <strong>{g.rawDescription || '—'}</strong>
+                <span className="ignored-source-line">Ref.: {g.manufacturerReference || '—'} · Fabricante: {g.manufacturerName || '—'}</span>
               </div>
               <span className="ignored-unlinked-badge">Não vinculado</span>
             </div>
             <div className="ignored-mobile-grid">
-              <div className="ignored-mobile-wide">
-                <span>Descrição</span>
-                <strong>{item.rawDescription}</strong>
+              <div>
+                <span>Ocorrências</span>
+                <strong>{g.occurrences} item(ns) em {g.affectedOrdersCount} pedido(s)</strong>
               </div>
               <div>
-                <span>Qtd.</span>
-                <strong>{item.quantity}</strong>
-              </div>
-              <div>
-                <span>Unidade</span>
-                <strong>{item.unit}</strong>
+                <span>Qtd. total</span>
+                <strong>{g.totalQuantity} {g.unit ?? ''}</strong>
               </div>
             </div>
+            <div className="ignored-group-orders" style={{ marginTop: 8 }}>
+              <strong>Pedidos afetados:</strong>
+              <ul>
+                {g.orders.map((o) => (
+                  <li key={o.orderId}>DAV {o.davNumber} — {o.clientName} — qtd {o.quantity}</li>
+                ))}
+              </ul>
+            </div>
             <div className="ignored-actions">
-              <button type="button" onClick={() => onLink(item)}>Vincular</button>
-              <button type="button" onClick={() => onRegister(item)}>Cadastrar</button>
-              <button type="button" onClick={() => onHide(item)}>Ocultar</button>
+              <button type="button" onClick={() => onRegister(g)}>Cadastrar</button>
+              <button type="button" onClick={() => onLink(g)}>Vincular</button>
+              <button type="button" onClick={() => onHide(g)}>Ocultar</button>
             </div>
           </article>
         ))}
@@ -406,9 +430,11 @@ export default function AdminIgnoredItems() {
   const [hiddenItems, setHiddenItems] = useState([]);
   const [loadingHidden, setLoadingHidden] = useState(true);
 
-  // Aba "Não vinculados" — API real (/unlinked-dav-items)
-  const [unlinkedItems, setUnlinkedItems] = useState([]);
+  // Aba "Não vinculados" — grupos retornados pelo backend
+  // (itens iguais em pedidos diferentes ficam sob a mesma entrada).
+  const [unlinkedGroups, setUnlinkedGroups] = useState([]);
   const [loadingUnlinked, setLoadingUnlinked] = useState(true);
+  const [expandedGroupKey, setExpandedGroupKey] = useState(null);
 
   // Catálogo carregado sob demanda para o modal de "Vincular"
   const [catalogProducts, setCatalogProducts] = useState([]);
@@ -451,11 +477,12 @@ export default function AdminIgnoredItems() {
       .finally(() => setLoadingHidden(false));
   }, []);
 
-  // Recarrega itens não vinculados (status=PENDING) da API real
+  // Recarrega aba "Não vinculados" — agora pede GRUPOS agrupados por produto
+  // ao backend em vez de itens flat.
   const reloadUnlinked = useCallback(() => {
     setLoadingUnlinked(true);
-    listUnlinkedDavItems()
-      .then(setUnlinkedItems)
+    listUnlinkedDavItemGroups()
+      .then(setUnlinkedGroups)
       .catch((err) => setFeedback(err.message))
       .finally(() => setLoadingUnlinked(false));
   }, []);
@@ -468,7 +495,10 @@ export default function AdminIgnoredItems() {
   // Contagens
   const activeHiddenCount = hiddenItems.length;
   const activeRulesCount  = rules.filter((r) => r.active && isSupportedRule(r)).length;
-  const unlinkedCount     = unlinkedItems.length;
+  // Em grupos, conta o número de "produtos" distintos não vinculados — é o
+  // que o ADMIN precisa resolver. (Não somamos occurrences porque a aba
+  // mostra um card por grupo.)
+  const unlinkedCount     = unlinkedGroups.length;
 
   // Filtros
   const filteredHidden = useMemo(() => {
@@ -501,16 +531,22 @@ export default function AdminIgnoredItems() {
 
   const filteredUnlinked = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return unlinkedItems.filter((u) => {
+    return unlinkedGroups.filter((g) => {
       if (!q) return true;
+      const inOrders = (g.orders ?? []).some(
+        (o) =>
+          (o.davNumber ?? '').toLowerCase().includes(q)
+          || (o.clientName ?? '').toLowerCase().includes(q),
+      );
       return (
-        (u.rawSku ?? '').toLowerCase().includes(q)
-        || (u.rawDescription ?? '').toLowerCase().includes(q)
-        || (u.customerName ?? '').toLowerCase().includes(q)
-        || (u.davNumber ?? '').includes(q)
+        (g.sku ?? '').toLowerCase().includes(q)
+        || (g.manufacturerReference ?? '').toLowerCase().includes(q)
+        || (g.manufacturerName ?? '').toLowerCase().includes(q)
+        || (g.rawDescription ?? '').toLowerCase().includes(q)
+        || inOrders
       );
     });
-  }, [unlinkedItems, search]);
+  }, [unlinkedGroups, search]);
 
   // Handlers de modais
   function openViewModal(item)      { setModal({ type: 'view', item }); }
@@ -616,10 +652,11 @@ export default function AdminIgnoredItems() {
     }
   }
 
-  // Aba "Não vinculados" — chamadas reais à API
+  // Aba "Não vinculados" — chamadas reais à API operando sobre GRUPOS.
+  // Cada ação afeta todos os itens iguais em todos os pedidos ao mesmo tempo.
 
-  // Vincula item a produto já existente no catálogo.
-  async function confirmLinkUnlinked(item) {
+  // Vincula o grupo inteiro a um produto já existente do catálogo.
+  async function confirmLinkUnlinked(group) {
     if (!selectedProductId) {
       setFormError('Selecione um produto do catálogo.');
       return;
@@ -627,19 +664,19 @@ export default function AdminIgnoredItems() {
     setFormLoading(true);
     setFormError(null);
     try {
-      await linkUnlinkedItemToProduct(item.id, selectedProductId);
-      setFeedback(`Item "${item.rawDescription}" vinculado com sucesso.`);
+      const res = await linkGroupToProduct({ groupKey: group.groupKey, productId: selectedProductId });
+      setFeedback(`${res.linkedItemsCount} item(ns) vinculado(s) ao produto em ${res.affectedOrdersCount} pedido(s).`);
       closeModal();
       reloadUnlinked();
     } catch (err) {
-      setFormError(err.message || 'Erro ao vincular item');
+      setFormError(err.message || 'Erro ao vincular grupo');
     } finally {
       setFormLoading(false);
     }
   }
 
-  // Cria produto novo no catálogo a partir do item DAV.
-  async function confirmRegisterUnlinked(item) {
+  // Cadastra produto a partir do grupo e vincula todos os itens.
+  async function confirmRegisterUnlinked(group) {
     setFormError(null);
     const { sku, name, unit, imageUrl, manufacturerReference, manufacturerName } = registerForm;
     if (!sku.trim() || !name.trim() || !unit.trim()) {
@@ -648,13 +685,14 @@ export default function AdminIgnoredItems() {
     }
     setFormLoading(true);
     try {
-      await createProductFromUnlinkedItem(item.id, {
+      const res = await registerProductFromGroup({
+        groupKey: group.groupKey,
         sku, name, unit,
         imageUrl: imageUrl || null,
         manufacturerReference: manufacturerReference || null,
         manufacturerName:      manufacturerName      || null,
       });
-      setFeedback(`Produto "${name}" cadastrado e item resolvido.`);
+      setFeedback(`Produto "${name}" cadastrado e vinculado a ${res.linkedItemsCount} item(ns) em ${res.affectedOrdersCount} pedido(s).`);
       closeModal();
       reloadUnlinked();
     } catch (err) {
@@ -664,8 +702,8 @@ export default function AdminIgnoredItems() {
     }
   }
 
-  // Oculta item não vinculado — cria regra em ignored_dav_items.
-  async function confirmHideUnlinked(item) {
+  // Oculta o grupo inteiro: cria uma regra e marca todos os itens como HIDDEN.
+  async function confirmHideUnlinked(group) {
     setFormError(null);
     if (!hideUnlinkedReason.trim()) {
       setFormError('Informe o motivo da ocultação.');
@@ -673,49 +711,53 @@ export default function AdminIgnoredItems() {
     }
     setFormLoading(true);
     try {
-      await hideUnlinkedItem(item.id, hideUnlinkedReason);
-      setFeedback(`Item "${item.rawDescription}" ocultado e regra criada.`);
+      const res = await hideUnlinkedGroup({ groupKey: group.groupKey, reason: hideUnlinkedReason });
+      setFeedback(`Grupo ocultado: ${res.hiddenItemsCount} item(ns) em ${res.affectedOrdersCount} pedido(s).`);
       closeModal();
       reloadUnlinked();
       reloadHidden();
       reloadRules();
     } catch (err) {
-      setFormError(err.message || 'Erro ao ocultar item');
+      setFormError(err.message || 'Erro ao ocultar grupo');
     } finally {
       setFormLoading(false);
     }
   }
 
-  // Abre modal de "Vincular" carregando catálogo
-  function openLinkModalReal(item) {
+  // Abre modal de "Vincular" carregando catálogo. Agora opera sobre o GRUPO.
+  function openLinkModalReal(group) {
     setSelectedProductId('');
     setProductSearch('');
     setFormError(null);
     listProducts('').then(setCatalogProducts).catch(() => setCatalogProducts([]));
-    setModal({ type: 'link', item });
+    setModal({ type: 'link', group });
   }
 
-  // Abre modal "Cadastrar" pré-preenchendo com dados do DAV.
-  // manufacturerReference/manufacturerName são essenciais para que o próximo
-  // DAV com a mesma referência seja vinculado automaticamente ao produto.
-  function openRegisterModalReal(item) {
+  // Abre modal "Cadastrar" pré-preenchendo com dados do grupo (sample).
+  // manufacturerReference/manufacturerName são essenciais para que os
+  // próximos DAVs com a mesma referência sejam vinculados automaticamente.
+  function openRegisterModalReal(group) {
     setRegisterForm({
-      sku:                   item.rawSku ?? '',
-      name:                  item.rawDescription ?? '',
-      unit:                  ['UN','CX','SC','PC','CT','PR','M'].includes(item.unit) ? item.unit : 'UN',
+      sku:                   group.sku ?? '',
+      name:                  group.rawDescription ?? '',
+      unit:                  ['UN','CX','SC','PC','CT','PR','M'].includes(group.unit) ? group.unit : 'UN',
       imageUrl:              '',
-      manufacturerReference: item.manufacturerReference ?? '',
-      manufacturerName:      item.manufacturerName      ?? '',
+      manufacturerReference: group.manufacturerReference ?? '',
+      manufacturerName:      group.manufacturerName      ?? '',
     });
     setFormError(null);
-    setModal({ type: 'register', item });
+    setModal({ type: 'register', group });
   }
 
-  // Abre modal "Ocultar" do item não vinculado (vai pra ignored_dav_items)
-  function openHideUnlinkedModal(item) {
+  // Abre modal "Ocultar" do grupo
+  function openHideUnlinkedModal(group) {
     setHideUnlinkedReason('');
     setFormError(null);
-    setModal({ type: 'hide-unlinked', item });
+    setModal({ type: 'hide-unlinked', group });
+  }
+
+  function toggleExpandGroup(key) {
+    setExpandedGroupKey((cur) => (cur === key ? null : key));
   }
 
   return (
@@ -841,13 +883,15 @@ export default function AdminIgnoredItems() {
         {tab === 'unlinked' && (
           <UnlinkedList
             loading={loadingUnlinked}
-            items={filteredUnlinked}
+            groups={filteredUnlinked}
+            expandedKey={expandedGroupKey}
+            onToggleExpand={toggleExpandGroup}
             onLink={openLinkModalReal}
             onRegister={openRegisterModalReal}
             onHide={openHideUnlinkedModal}
-            onCreateRule={(item) => openRuleModal({
+            onCreateRule={(group) => openRuleModal({
               type: 'NAME_CONTAINS',
-              value: item.rawDescription.split(' ').slice(0, 2).join(' '),
+              value: (group.rawDescription ?? '').split(' ').slice(0, 2).join(' '),
             })}
           />
         )}
@@ -1005,13 +1049,13 @@ export default function AdminIgnoredItems() {
           )}
 
           {modal.type === 'link' && (
-            <ModalCard title="Vincular a produto existente"
-              subtitle={`${modal.item.rawSku} · ${modal.item.rawDescription}`}
+            <ModalCard title="Vincular grupo a produto existente"
+              subtitle={`${modal.group.manufacturerReference ?? modal.group.sku ?? '—'} · ${modal.group.rawDescription ?? '—'}`}
               onClose={closeModal}>
               <div className="ignored-modal-body">
                 <div className="ignored-confirm-box" style={{ marginBottom: 12 }}>
-                  <strong>Origem do item</strong>
-                  <p>DAV {modal.item.davNumber} · {modal.item.customerName} · Qtd. {modal.item.quantity} {modal.item.unit ?? ''}</p>
+                  <strong>Grupo selecionado</strong>
+                  <p>{modal.group.occurrences} item(ns) em {modal.group.affectedOrdersCount} pedido(s) · qtd. total {modal.group.totalQuantity} {modal.group.unit ?? ''}</p>
                 </div>
                 <label style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: 'var(--outline-strong)' }}>
                   Buscar produto no catálogo
@@ -1052,8 +1096,8 @@ export default function AdminIgnoredItems() {
                 <button className="btn btn-secondary" type="button" onClick={closeModal}>Cancelar</button>
                 <button className="btn btn-primary" type="button"
                   disabled={!selectedProductId || formLoading}
-                  onClick={() => confirmLinkUnlinked(modal.item)}>
-                  {formLoading ? 'Vinculando…' : 'Vincular ao produto'}
+                  onClick={() => confirmLinkUnlinked(modal.group)}>
+                  {formLoading ? 'Vinculando…' : 'Vincular grupo ao produto'}
                 </button>
               </div>
             </ModalCard>
@@ -1061,9 +1105,9 @@ export default function AdminIgnoredItems() {
 
           {modal.type === 'register' && (
             <ModalCard title="Cadastrar novo produto"
-              subtitle="Os dados do DAV são pré-preenchidos. Ajuste se necessário antes de salvar."
+              subtitle="Os dados do grupo são pré-preenchidos. Cadastrar aqui vincula o produto a todos os pedidos afetados."
               onClose={closeModal}>
-              <form className="ignored-form" onSubmit={(e) => { e.preventDefault(); confirmRegisterUnlinked(modal.item); }}>
+              <form className="ignored-form" onSubmit={(e) => { e.preventDefault(); confirmRegisterUnlinked(modal.group); }}>
                 <div className="ignored-form-grid">
                   <label>
                     <span>SKU / Código *</span>
@@ -1105,8 +1149,16 @@ export default function AdminIgnoredItems() {
                   </label>
                 </div>
                 <div className="ignored-confirm-box" style={{ marginTop: 12 }}>
-                  <strong>Origem do item</strong>
-                  <p>DAV {modal.item.davNumber} · {modal.item.customerName} · Qtd. {modal.item.quantity} {modal.item.unit ?? ''}</p>
+                  <strong>Grupo selecionado</strong>
+                  <p>{modal.group.occurrences} item(ns) em {modal.group.affectedOrdersCount} pedido(s) · qtd. total {modal.group.totalQuantity} {modal.group.unit ?? ''}</p>
+                  <ul style={{ margin: '6px 0 0 16px', padding: 0, fontSize: 12 }}>
+                    {modal.group.orders.slice(0, 5).map((o) => (
+                      <li key={o.orderId}>DAV {o.davNumber} — {o.clientName} — qtd {o.quantity}</li>
+                    ))}
+                    {modal.group.orders.length > 5 && (
+                      <li>… e mais {modal.group.orders.length - 5} pedido(s)</li>
+                    )}
+                  </ul>
                 </div>
                 {formError && <div className="ignored-form-error">{formError}</div>}
                 <div className="ignored-modal-foot" style={{ marginTop: 16 }}>
@@ -1120,13 +1172,13 @@ export default function AdminIgnoredItems() {
           )}
 
           {modal.type === 'hide-unlinked' && (
-            <ModalCard title="Ocultar item no picking"
-              subtitle={`${modal.item.rawSku ?? '—'} · ${modal.item.rawDescription}`}
+            <ModalCard title="Ocultar grupo no picking"
+              subtitle={`${modal.group.manufacturerReference ?? modal.group.sku ?? '—'} · ${modal.group.rawDescription ?? '—'}`}
               onClose={closeModal}>
-              <form className="ignored-form" onSubmit={(e) => { e.preventDefault(); confirmHideUnlinked(modal.item); }}>
+              <form className="ignored-form" onSubmit={(e) => { e.preventDefault(); confirmHideUnlinked(modal.group); }}>
                 <div className="ignored-confirm-box" style={{ marginBottom: 12 }}>
-                  <strong>{modal.item.rawDescription}</strong>
-                  <p>Origem: DAV {modal.item.davNumber} · {modal.item.customerName}</p>
+                  <strong>{modal.group.rawDescription ?? '—'}</strong>
+                  <p>{modal.group.occurrences} item(ns) em {modal.group.affectedOrdersCount} pedido(s) — todos serão ocultados.</p>
                 </div>
                 <label className="ignored-form-wide">
                   <span>Motivo da ocultação *</span>

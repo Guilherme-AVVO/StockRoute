@@ -216,6 +216,70 @@ export async function revertHiddenToPending(id) {
   return rows[0] ?? null;
 }
 
+// Lista TODOS os itens não vinculados PENDING agrupados ainda em formato linha,
+// para o service montar os grupos. Inclui dados do pedido para construir
+// `orders` em cada grupo.
+export async function listPendingUnlinkedDavItemsWithOrder() {
+  return sql`
+    SELECT
+      u.id,
+      u.order_id,
+      u.raw_sku,
+      u.raw_description,
+      u.quantity,
+      u.unit,
+      u.manufacturer_reference,
+      u.manufacturer_name,
+      u.created_at,
+      o.order_number  AS dav_number,
+      o.customer_name AS customer_name
+    FROM unlinked_dav_items u
+    JOIN orders o ON o.id = u.order_id
+    WHERE u.status = 'PENDING'
+    ORDER BY u.created_at ASC
+  `;
+}
+
+// Atualiza um conjunto de unlinked_dav_items para LINKED apontando ao produto.
+// Usado por linkGroupToProduct / registerProductForGroup.
+export async function linkUnlinkedItemsBatch(ids, { productId, resolutionNote, resolvedBy }) {
+  if (!ids || ids.length === 0) return [];
+  const rows = await sql`
+    UPDATE unlinked_dav_items
+    SET status          = 'LINKED',
+        product_id      = ${productId},
+        resolution_note = ${resolutionNote},
+        resolved_at     = NOW(),
+        resolved_by     = ${resolvedBy},
+        updated_at      = NOW()
+    WHERE id IN ${sql(ids)}
+      AND status = 'PENDING'
+    RETURNING id, order_id, quantity
+  `;
+  return rows;
+}
+
+// Marca um lote inteiro como HIDDEN — usado por hideGroup quando o ADMIN
+// decide ocultar todos os itens do grupo em uma só operação.
+export async function markUnlinkedDavItemsHiddenBatch(ids, { ignoredRuleId, resolutionNote, resolvedBy, hiddenManually }) {
+  if (!ids || ids.length === 0) return [];
+  const rows = await sql`
+    UPDATE unlinked_dav_items
+    SET status          = 'HIDDEN',
+        product_id      = NULL,
+        ignored_rule_id = ${ignoredRuleId},
+        resolution_note = ${resolutionNote},
+        hidden_manually = ${hiddenManually ?? false},
+        resolved_at     = NOW(),
+        resolved_by     = ${resolvedBy},
+        updated_at      = NOW()
+    WHERE id IN ${sql(ids)}
+      AND status = 'PENDING'
+    RETURNING id, order_id
+  `;
+  return rows;
+}
+
 // Conta itens não vinculados pendentes — útil para dashboard.
 export async function countPendingUnlinkedDavItems() {
   const rows = await sql`
