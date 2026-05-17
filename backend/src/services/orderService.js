@@ -44,7 +44,7 @@ async function findProductForDavItem(item) {
   return findProductForSku(item.rawSku);
 }
 
-export async function resolveDavItemRouting(item) {
+async function resolveDavItemRouting(item) {
   const ignored = await shouldIgnoreDavItem({
     rawSku:                item.rawSku,
     rawDescription:        item.rawDescription,

@@ -1,14 +1,8 @@
 // Página ADMIN de Configurações.
 // Centraliza preferências visuais e parâmetros operacionais.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { api } from '../../services/api.js';
 import './AdminSettings.css';
-
-// Dado temporário usado apenas enquanto a API real não está pronta.
-// O backend ainda não possui endpoint de configurações/status operacional.
-const SYSTEM_STATUS = [
-  ['API', 'Online'], ['Banco', 'Conectado'], ['Frontend', 'Online'],
-  ['Último deploy', 'Hoje'], ['Ambiente', 'Teste'], ['Última sincronização', 'Agora'],
-];
 
 export default function AdminSettings({ onNavigate }) {
   // Toggles visuais locais; não persistem no backend nesta etapa.
@@ -20,6 +14,14 @@ export default function AdminSettings({ onNavigate }) {
   });
   const [modal, setModal] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    api.get('/dashboard/stats')
+      .then((res) => res.json())
+      .then(setStats)
+      .catch(() => setStats(null));
+  }, []);
 
   function toggle(name) {
     if (name === 'requireReason' && toggles.requireReason) {
@@ -27,10 +29,6 @@ export default function AdminSettings({ onNavigate }) {
       return;
     }
     setToggles((current) => ({ ...current, [name]: !current[name] }));
-  }
-
-  function showFeedback(message) {
-    setFeedback(message);
   }
 
   return (
@@ -41,9 +39,6 @@ export default function AdminSettings({ onNavigate }) {
           <h1>Configurações</h1>
           <p>Ajuste preferências administrativas e visualize parâmetros operacionais do StockRoute.</p>
         </div>
-        <div className="hero-actions">
-          <button className="btn btn-secondary" type="button" onClick={() => showFeedback('Configurações salvas visualmente. Integração com backend será feita na próxima etapa.')}>Salvar alterações</button>
-        </div>
       </section>
 
       {feedback && <div className="settings-feedback" role="status">{feedback}</div>}
@@ -52,7 +47,7 @@ export default function AdminSettings({ onNavigate }) {
         <div className="settings-grid">
           <div className="card settings-card">
             <h2>Sistema</h2>
-            <div className="settings-kv"><span>Nome do sistema</span><strong>StockRoute</strong><span>Empresa</span><strong>Moto Madeiras</strong><span>Ambiente</span><strong>Teste</strong><span>Versão</span><strong>MVP inicial</strong><span>Status da API</span><strong className="settings-ok">Online</strong></div>
+            <div className="settings-kv"><span>Nome do sistema</span><strong>StockRoute</strong><span>Empresa</span><strong>Moto Madeiras</strong><span>Ambiente</span><strong>Teste</strong><span>Versão</span><strong>MVP inicial</strong></div>
             <Toggle label="Mostrar atalhos na dashboard" active={toggles.shortcuts} onClick={() => toggle('shortcuts')} />
             <Toggle label="Exibir avisos operacionais" active={toggles.warnings} onClick={() => toggle('warnings')} />
           </div>
@@ -78,7 +73,7 @@ export default function AdminSettings({ onNavigate }) {
 
           <div className="card settings-card">
             <h2>Itens ignorados</h2>
-            <ul><li>Regras ativas: 84</li><li>Itens ignorados não aparecem no picking</li><li>Itens ignorados continuam no histórico</li><li>Toda regra deve ter motivo</li><li>Auditoria obrigatória</li></ul>
+            <ul><li>Regras ativas: {stats?.activeIgnoredRules ?? '—'}</li><li>Itens ignorados não aparecem no picking</li><li>Itens ignorados continuam no histórico</li><li>Toda regra deve ter motivo</li><li>Auditoria obrigatória</li></ul>
             <button className="btn btn-primary btn-sm" type="button" onClick={() => onNavigate?.('ignoredItems')}>Gerenciar itens ignorados</button>
           </div>
 
@@ -88,12 +83,6 @@ export default function AdminSettings({ onNavigate }) {
             <button className="btn btn-primary btn-sm" type="button" onClick={() => onNavigate?.('users')}>Gerenciar usuários</button>
           </div>
 
-          <div className="card settings-card">
-            <h2>Manutenção</h2>
-            <p>Operações visuais de suporte para teste do painel administrativo.</p>
-            <div className="settings-actions"><button className="btn btn-secondary btn-sm" type="button" onClick={() => showFeedback('Cache visual limpo.')}>Limpar cache</button><button className="btn btn-secondary btn-sm" type="button" onClick={() => showFeedback('Verificação concluída.')}>Verificar agora</button></div>
-          </div>
-
           <div className="card settings-card settings-checklist">
             <h2>Checklist de produção</h2>
             <ul><li>FRONTEND_URL configurada</li><li>VITE_API_URL configurada</li><li>PostgreSQL online conectado</li><li>JWT_SECRET de produção definido</li><li>.env não enviado ao GitHub</li></ul>
@@ -101,10 +90,12 @@ export default function AdminSettings({ onNavigate }) {
         </div>
 
         <aside className="card settings-side">
-          <h2>Estado do sistema</h2>
-          {SYSTEM_STATUS.map(([label, value]) => (
-            <div className="settings-status-row" key={label}><span>{label}</span><strong>{value}</strong></div>
-          ))}
+          <h2>Indicadores reais</h2>
+          <div className="settings-status-row"><span>Pedidos pendentes</span><strong>{stats?.ordersPending ?? '—'}</strong></div>
+          <div className="settings-status-row"><span>Em separação</span><strong>{stats?.ordersInProgress ?? '—'}</strong></div>
+          <div className="settings-status-row"><span>Concluídos</span><strong>{stats?.ordersCompleted ?? '—'}</strong></div>
+          <div className="settings-status-row"><span>Produtos</span><strong>{stats?.totalProducts ?? '—'}</strong></div>
+          <div className="settings-status-row"><span>Regras ativas</span><strong>{stats?.activeIgnoredRules ?? '—'}</strong></div>
         </aside>
       </section>
 

@@ -62,35 +62,6 @@ export async function findIgnoredRuleForItem({
   return rows[0] ?? null;
 }
 
-// Mantidas para compatibilidade com chamadores legados.
-export async function findIgnoredDavItemBySku(normalizedSku) {
-  if (!normalizedSku) return null;
-  const rows = await sql`
-    SELECT ${ignoredDavItemFields}
-    FROM ignored_dav_items
-    WHERE normalized_sku = ${normalizedSku}
-      AND active = TRUE
-      AND deleted_at IS NULL
-    ORDER BY created_at DESC
-    LIMIT 1
-  `;
-  return rows[0] ?? null;
-}
-
-export async function findIgnoredDavItemByDescription(normalizedDescription) {
-  if (!normalizedDescription) return null;
-  const rows = await sql`
-    SELECT ${ignoredDavItemFields}
-    FROM ignored_dav_items
-    WHERE normalized_description = ${normalizedDescription}
-      AND active = TRUE
-      AND deleted_at IS NULL
-    ORDER BY created_at DESC
-    LIMIT 1
-  `;
-  return rows[0] ?? null;
-}
-
 export async function createIgnoredDavItem(data) {
   const rows = await sql`
     INSERT INTO ignored_dav_items (

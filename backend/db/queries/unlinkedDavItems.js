@@ -279,13 +279,3 @@ export async function markUnlinkedDavItemsHiddenBatch(ids, { ignoredRuleId, reso
   `;
   return rows;
 }
-
-// Conta itens não vinculados pendentes — útil para dashboard.
-export async function countPendingUnlinkedDavItems() {
-  const rows = await sql`
-    SELECT COUNT(*)::int AS count
-    FROM unlinked_dav_items
-    WHERE status = 'PENDING'
-  `;
-  return rows[0].count;
-}

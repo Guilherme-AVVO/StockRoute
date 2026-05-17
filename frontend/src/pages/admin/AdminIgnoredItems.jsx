@@ -424,7 +424,6 @@ export default function AdminIgnoredItems() {
 
   // Aba "Regras" — API real (ignored_dav_items)
   const [rules, setRules] = useState([]);
-  const [loadingRules, setLoadingRules] = useState(true);
 
   // Aba "Ocultos" — ocorrências reais ocultadas em unlinked_dav_items.
   const [hiddenItems, setHiddenItems] = useState([]);
@@ -462,11 +461,9 @@ export default function AdminIgnoredItems() {
   const [formLoading,  setFormLoading]  = useState(false);
 
   const reloadRules = useCallback(() => {
-    setLoadingRules(true);
     listIgnoredDavItems({ includeInactive: true })
       .then(setRules)
-      .catch((err) => setFeedback(err.message))
-      .finally(() => setLoadingRules(false));
+      .catch((err) => setFeedback(err.message));
   }, []);
 
   const reloadHidden = useCallback(() => {

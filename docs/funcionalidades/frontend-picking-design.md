@@ -19,7 +19,7 @@ Implementação do design do ESTOQUISTA gerado no Claude Design e exportado para
 | [components/stockist/ProductReferenceModal.jsx](../../frontend/src/components/stockist/ProductReferenceModal.jsx) | Modal "Referência" — foto cadastrada do produto + ficha técnica + banner explicando que ela NÃO é a foto de coleta. |
 | [components/stockist/CollectItemModal.jsx](../../frontend/src/components/stockist/CollectItemModal.jsx) | Modal "Coletar" — `<input type="file" accept="image/*" capture="environment">` abre a câmera traseira no celular; preview da foto; confirmar desabilitado até existir foto. |
 | [components/stockist/NotFoundModal.jsx](../../frontend/src/components/stockist/NotFoundModal.jsx) | Modal "Não encontrado" — motivos em rádios; observação obrigatória se motivo for `OUTRO`. |
-| [pages/stockist/mockData.js](../../frontend/src/pages/stockist/mockData.js) | Mock controlado de pedidos/itens + helpers `formatDate`/`formatDateTime`/`formatDuration`/`classifyDelivery` + lista `NOT_FOUND_REASONS`. |
+| [pages/stockist/stockistFormat.js](../../frontend/src/pages/stockist/stockistFormat.js) | Helpers de formatação e lista `NOT_FOUND_REASONS`, sem dados mockados. |
 
 ## Como o HTML foi convertido
 
@@ -27,7 +27,7 @@ O `picking-preview.html` é uma stage para rodar o React via Babel standalone de
 
 1. **Descartar** a stage do preview (frame de celular, toolbar de viewport, react via CDN).
 2. **Copiar** o módulo `pages/stockist/*` e `components/stockist/*` do bundle como fonte direta — já vinham idiomáticos em React + CSS separado.
-3. **Plugar** o `StockistApp` no [App.jsx](../../frontend/src/App.jsx): ADMIN continua indo para `AdminDashboard`; qualquer outro role (ESTOQUISTA / etc.) cai no `StockistApp`. A tela antiga `Dashboard.jsx` deixa de ser usada para usuários não-ADMIN.
+3. **Plugar** o `StockistApp` no [App.jsx](../../frontend/src/App.jsx): ADMIN continua indo para `AdminDashboard`; qualquer outro role (ESTOQUISTA / etc.) cai no `StockistApp`.
 
 ## CSS separado
 
@@ -64,26 +64,11 @@ Cada componente importa seu próprio `.css` ao lado dele. Não há CSS-in-JS, Ta
 | **Finalizar pedido** | Só habilita quando `pendentes === 0`; ao tocar, grava sessionEnd e vai para o Resumo |
 | Resumo final | Status CONCLUÍDO (verde) se tudo coletado; OBSERVAÇÃO (laranja) se houver não encontrados; mostra duração da sessão, fotos e itens com observação |
 
-## Dados temporários
+## Integração real
 
-Tudo na tela hoje vem de `pages/stockist/mockData.js` — claramente marcado com o comentário:
-
-```js
-// Dados mockados apenas para montar o frontend.
-// Na próxima etapa serão substituídos por chamadas reais à API.
-```
-
-O contexto do estoquista (`useAuth`) já entrega o usuário real do JWT, então cabeçalho e responsável já são reais; apenas a lista de pedidos/itens e o estado de picking ficam em memória local.
-
-## Próximos passos para integrar com a API
-
-1. Criar `frontend/src/services/stockistService.js` com `listAvailableOrders()`, `getOrderForPicking(id)`, `submitItemCollected(itemId, photoFile)`, `submitItemNotFound(itemId, reason, note)`, `finishOrder(id)`.
-2. Trocar `MOCK_ORDERS` em `StockistOrders` por um `useEffect` + chamada real (rotas backend novas: `GET /orders?status=IN_PROGRESS` ou rota dedicada `/picking/orders`).
-3. Persistir cada `onUpdateItem` no backend (upload da foto via `FormData`, registro do motivo).
-4. Disparar eventos de auditoria correspondentes (`PICKING_STARTED`, `PICKING_ITEM_COLLECTED`, `PICKING_ITEM_NOT_FOUND`, `PICKING_FINISHED`) — os tipos já estão definidos em [auditService.AUDIT_EVENT_TYPES](../../backend/src/services/auditService.js).
-5. Substituir o `URL.createObjectURL(file)` temporário pela URL real devolvida pelo backend após o upload.
-
-Nada disso foi feito nesta task — o foco era o visual mobile-first.
+O fluxo do estoquista usa `frontend/src/services/stockistService.js` e rotas reais em `/stockist`.
+Pedidos disponíveis, início de separação, coleta com foto, item não encontrado,
+finalização e resumo são persistidos pelo backend.
 
 ## Como testar manualmente
 

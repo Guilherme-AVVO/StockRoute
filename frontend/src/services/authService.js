@@ -60,15 +60,6 @@ export function logout() {
   sessionStorage.removeItem(USER_KEY);
 }
 
-export function getSavedUser() {
-  const raw = sessionStorage.getItem(USER_KEY);
-  try {
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
 export function getSavedToken() {
   return sessionStorage.getItem(TOKEN_KEY);
 }

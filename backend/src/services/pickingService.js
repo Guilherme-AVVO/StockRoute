@@ -177,7 +177,7 @@ function computeProgress(itemsDto) {
   return { total, collected, notFound, pending, processed, pct };
 }
 
-export async function getOrderWithProgress(orderId) {
+async function getOrderWithProgress(orderId) {
   const order = await findOrderForPickingById(orderId);
   if (!order) return null;
   const items = (await listPickingItems(orderId)).map(toPickingItemDto);

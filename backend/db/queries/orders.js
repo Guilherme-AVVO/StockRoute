@@ -282,18 +282,3 @@ export async function createOrderItem({ orderId, productId, quantity }) {
   `;
   return rows[0];
 }
-
-export async function updateOrderItem(itemId, { pickedQty, missingQty, status }) {
-  const rows = await sql`
-    UPDATE order_items
-    SET picked_quantity  = ${pickedQty},
-        missing_quantity = ${missingQty},
-        status           = ${status},
-        updated_at       = NOW()
-    WHERE id = ${itemId}
-    RETURNING
-      id, order_id, product_id, quantity,
-      picked_quantity, missing_quantity, status, updated_at
-  `;
-  return rows[0] ?? null;
-}

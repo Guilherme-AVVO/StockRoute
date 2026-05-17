@@ -13,9 +13,10 @@ backend/
         │   ├── 004_create_order_items.sql
         │   ├── 005_create_picking_evidences.sql
         │   ├── 006_create_missing_items.sql
-        │   └── 007_create_ignored_dav_items.sql
+        │   ├── 007_create_ignored_dav_items.sql
+        │   └── ...
         ├── queries/
-        │   └── orders.sql
+        │   └── *.js
         ├── seeds/
         │   └── seed_001_initial.sql
         └── pool.js
@@ -42,6 +43,7 @@ backend/
 | 13 | `013_reapply_hide_rules.sql` | Suporta reaplicação de regras em itens já importados. |
 | 14 | `014_create_audit_events.sql` | Cria histórico/auditoria append-only. |
 | 15 | `015_add_user_status.sql` | Adiciona `users.is_active` para ativar/desativar usuários sem apagar histórico. |
+| 16 | `016_add_picking_fields.sql` | Adiciona campos operacionais do fluxo de picking em pedidos e itens. |
 
 Para rodar todas em sequência (psql):
 ```bash
@@ -61,6 +63,7 @@ psql -U stockroute_user -d stockroute \
   -f migrations/013_reapply_hide_rules.sql \
   -f migrations/014_create_audit_events.sql \
   -f migrations/015_add_user_status.sql \
+  -f migrations/016_add_picking_fields.sql \
   -f seeds/seed_001_initial.sql
 ```
 

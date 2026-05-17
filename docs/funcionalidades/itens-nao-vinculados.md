@@ -173,8 +173,7 @@ curl -X POST http://localhost:3000/unlinked-dav-items/<ID>/hide \
    em sequência. Em caso de falha entre eles, há risco pequeno de estado inconsistente.
    O `postgres` (Postgres.js) suporta transações via `sql.begin`; podemos refatorar
    se isso virar problema operacional.
-3. **Regras por padrão (Nome contém, SKU prefix…)** continuam mock no frontend;
-   `match_type` em `ignored_dav_items` aceita só `SKU`/`DESCRIPTION`/`SKU_AND_DESCRIPTION`
-   (match exato). Para virar real precisa expandir o enum + ajustar `shouldIgnoreDavItem`.
+3. **Regras de ocultação expandidas** já são persistidas em `ignored_dav_items`
+   e reaplicadas pelo backend para itens existentes.
 4. **Não há reabertura de itens resolvidos** — uma vez `LINKED` ou `HIDDEN`,
    o item não volta para `PENDING` via UI. Para reabrir, hoje precisaria de UPDATE manual.

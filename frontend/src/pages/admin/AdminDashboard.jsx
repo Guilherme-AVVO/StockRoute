@@ -76,7 +76,6 @@ export default function AdminDashboard() {
       </div>
 
       <AdminLayout
-        onOpenUpload={() => setModalOpen(true)}
         activeSection={activeSection}
         onNavigate={setActiveSection}
       >

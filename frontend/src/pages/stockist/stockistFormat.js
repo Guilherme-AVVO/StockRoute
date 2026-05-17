@@ -1,7 +1,6 @@
 // ============================================================
 // Helpers de formatação compartilhados pelas telas do estoquista.
-// Antes vivia em mockData.js junto dos dados mockados — agora isolado
-// para que o fluxo real não dependa de mocks.
+// Mantém labels e formatações fora dos componentes de tela.
 // ============================================================
 
 export const NOT_FOUND_REASONS = [

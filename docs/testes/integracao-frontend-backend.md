@@ -11,13 +11,12 @@ Este documento resume o estado atual da integração real do StockRoute entre fr
 - Pedidos: consome `GET /orders`, `GET /dashboard/stats` e `PUT /orders/:id/publish`.
 - Revisões: consome `GET /orders?status=PENDING`, `GET /orders/:id` e `PUT /orders/:id/publish`.
 - Usuários: consome `GET /users`, `GET /users/:id`, `POST /users`, `PUT /users/:id` e `PATCH /users/:id/status`.
-- Itens ignorados: consome `GET /ignored-dav-items`, `POST /ignored-dav-items` e `DELETE /ignored-dav-items/:id`.
+- Itens ignorados: consome `GET /ignored-dav-items`, `POST /ignored-dav-items`, `PUT /ignored-dav-items/:id`, `PATCH /ignored-dav-items/:id/status` e `DELETE /ignored-dav-items/:id`.
+- Não vinculados: consome grupos reais em `GET /unlinked-dav-items/groups` e resolve via `/groups/register`, `/groups/link` e `/groups/hide`.
 
-## Telas ou partes ainda mockadas
-- Configurações: ainda é visual/local porque não existe endpoint de configuração/status operacional.
-- Notificações do header: ainda são locais porque não existe endpoint de notificações.
-- Últimas aplicações em Itens ignorados: ainda é local porque o backend não registra/exibe histórico de aplicação das regras.
-- Revisões de itens sem vínculo/ignorados: o backend calcula contadores na importação, mas hoje só persiste em `order_items` os itens vinculados a produtos. Itens sem vínculo e ignorados ainda não ficam disponíveis em uma tela real de revisão/auditoria.
+## Telas ou partes ainda sem API dedicada
+- Configurações: preferências visuais ainda são locais porque não existe endpoint de configuração operacional.
+- Últimas aplicações em Itens ignorados: ainda não há endpoint dedicado para histórico de aplicação das regras.
 
 ## Endpoints usados
 
@@ -94,20 +93,16 @@ Atenção: o runner atual de migrations não registra migrations aplicadas. Em b
 7. Abrir Pedidos e confirmar que os pedidos reais aparecem com status e progresso.
 8. Abrir Revisões e confirmar que pedidos `PENDING` e itens vinculados aparecem.
 9. Abrir Usuários e testar listar, criar, editar, desativar e reativar com persistência no banco.
-10. Confirmar que Configurações e Notificações continuam documentadas como visuais enquanto não há API.
+10. Confirmar que Configurações mostra indicadores reais e que preferências locais não prometem persistência no backend.
 
 ## Limitações atuais
 
 - A aba Usuários foi integrada ao backend real; detalhes em `docs/funcionalidades/admin-users-real.md`.
-- Não há endpoint de notificações.
 - Não há endpoint de configurações/status operacional detalhado.
 - Não há seed reproduzível para os três pedidos DAV atuais.
-- Itens sem vínculo e ignorados durante importação não são persistidos em uma estrutura consultável pela tela de Revisões.
 - O upload real depende dos PDFs DAV originais para teste completo de parser.
 
 ## Próximos passos
 
-- Decidir como persistir itens extraídos sem vínculo e ignorados para auditoria/revisão.
 - Criar seed reprodutível dos três DAVs ou versionar fixtures seguras de teste.
-- Criar API de histórico/auditoria.
-- Criar API de notificações ou remover o contador visual mockado até existir regra real.
+- Expandir endpoints de configuração operacional se as preferências locais virarem regra real.
