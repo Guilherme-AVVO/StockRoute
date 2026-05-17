@@ -50,18 +50,29 @@ export default function StockistOrders({ user, onStart, onLogout }) {
       onStart?.(order.id);
     } catch (err) {
       if (err.status === 409) {
-        // Estoquista já tem outro pedido em separação — orienta a retomá-lo.
-        setError('Você já possui um pedido em separação. Finalize ou retome o pedido atual.');
-        if (err.data?.activeOrderId) {
-          onStart?.(err.data.activeOrderId);
-          return;
-        }
+        // Backend manda activeOrderNumber + activeOrderId; mostramos a
+        // mensagem completa (já cita o DAV) e oferecemos botão para
+        // retomar o pedido pendente.
+        const dav  = err.data?.activeOrderNumber;
+        const text = err.message
+          || (dav
+              ? `Você já possui o pedido ${dav} em separação. Finalize-o antes de iniciar outro.`
+              : 'Você já possui um pedido em separação. Finalize-o antes de iniciar outro.');
+        setError({ text, activeOrderId: err.data?.activeOrderId ?? null });
       } else {
         setError(err.message || 'Não foi possível iniciar a separação.');
       }
     } finally {
       setStarting(null);
     }
+  }
+
+  // Quando o estoquista já tem um pedido EM_SEPARACAO, ele vem no topo da
+  // lista (backend devolve com isMine=true). Esse atalho é usado pelo
+  // banner do erro 409 para levar direto ao pedido pendente.
+  function handleResume(activeOrderId) {
+    setError(null);
+    if (activeOrderId) onStart?.(activeOrderId);
   }
 
   return (
@@ -90,7 +101,17 @@ export default function StockistOrders({ user, onStart, onLogout }) {
         </div>
         <h1>Pedidos para separação</h1>
         <p className="stk-header-subtitle">
-          {filtered.length} pedido{filtered.length === 1 ? '' : 's'} aguardando • toque em um card para iniciar.
+          {(() => {
+            const mineCount = filtered.filter((o) => o.isMine).length;
+            const aguardandoCount = filtered.length - mineCount;
+            if (mineCount > 0 && aguardandoCount > 0) {
+              return `1 em separação • ${aguardandoCount} aguardando.`;
+            }
+            if (mineCount > 0) {
+              return 'Termine sua separação em andamento.';
+            }
+            return `${aguardandoCount} pedido${aguardandoCount === 1 ? '' : 's'} aguardando • toque em um card para iniciar.`;
+          })()}
         </p>
 
         <div className="stk-search">
@@ -123,7 +144,7 @@ export default function StockistOrders({ user, onStart, onLogout }) {
       <main className="stk-content">
         {loading && <OrdersSkeleton />}
 
-        {!loading && error && (
+        {!loading && error && typeof error === 'string' && (
           <div className="stk-empty stk-empty-error">
             <div className="stk-empty-icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -139,7 +160,30 @@ export default function StockistOrders({ user, onStart, onLogout }) {
           </div>
         )}
 
-        {!loading && !error && filtered.length === 0 && (
+        {!loading && error && typeof error === 'object' && (
+          <div className="stk-empty stk-empty-error" style={{ marginBottom: 12 }}>
+            <div className="stk-empty-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3 2 21h20L12 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                <path d="M12 10v5M12 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
+            <h2>Pedido em separação pendente</h2>
+            <p>{error.text}</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {error.activeOrderId && (
+                <button type="button" className="stk-btn stk-btn-primary stk-btn-sm" onClick={() => handleResume(error.activeOrderId)}>
+                  Retomar pedido pendente
+                </button>
+              )}
+              <button type="button" className="stk-btn stk-btn-secondary stk-btn-sm" onClick={() => setError(null)}>
+                Ok
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!loading && (!error || typeof error === 'object') && filtered.length === 0 && (
           <div className="stk-empty">
             <div className="stk-empty-icon stk-empty-icon-ok">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -155,7 +199,7 @@ export default function StockistOrders({ user, onStart, onLogout }) {
           </div>
         )}
 
-        {!loading && !error && filtered.length > 0 && (
+        {!loading && (!error || typeof error === 'object') && filtered.length > 0 && (
           <ul className="stk-orders-list">
             {filtered.map((order) => (
               <OrderCard
@@ -175,14 +219,28 @@ export default function StockistOrders({ user, onStart, onLogout }) {
 
 function OrderCard({ order, onStart, starting, disabled }) {
   const delivery = classifyDelivery(order.deliveryDate);
+  const isMine = order.isMine === true;
   return (
-    <li className={`stk-order-card stk-order-${delivery.kind}`}>
+    <li
+      className={`stk-order-card stk-order-${delivery.kind}${isMine ? ' stk-order-mine' : ''}`}
+      style={isMine ? { borderWidth: 2, borderStyle: 'solid', borderColor: 'var(--primary)' } : undefined}
+    >
+      {isMine && (
+        <p
+          className="stk-order-mine-hint"
+          style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 0.3 }}
+        >
+          Sua separação em andamento — finalize antes de iniciar outro
+        </p>
+      )}
       <div className="stk-order-head">
         <div>
           <span className="stk-order-dav">{order.davNumber}</span>
           <h3 className="stk-order-customer">{order.clientName}</h3>
         </div>
-        <span className="stk-badge aguardando">Aguardando</span>
+        <span className={`stk-badge ${isMine ? 'em-separacao' : 'aguardando'}`}>
+          {isMine ? 'Em separação' : 'Aguardando'}
+        </span>
       </div>
 
       <div className="stk-order-meta">
@@ -220,7 +278,9 @@ function OrderCard({ order, onStart, starting, disabled }) {
           disabled={disabled || starting}
           aria-disabled={disabled || starting}
         >
-          {starting ? 'Iniciando…' : 'Iniciar separação'}
+          {starting
+            ? (isMine ? 'Abrindo…' : 'Iniciando…')
+            : (isMine ? 'Retomar separação' : 'Iniciar separação')}
           {!starting && (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

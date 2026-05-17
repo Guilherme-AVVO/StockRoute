@@ -66,15 +66,19 @@ function urgencyLabelFor(deliveryDate) {
   return `Entrega em ${diffDays} dias`;
 }
 
-function toAvailableOrderDto(row) {
+function toAvailableOrderDto(row, { userId } = {}) {
+  const isMine = row.status === 'PICKING' && row.assigned_to === userId;
   return {
     id:            row.id,
     davNumber:     row.order_number,
     clientName:    row.customer_name,
     deliveryDate:  row.delivery_date,
     status:        STOCKIST_STATUS_LABELS[row.status] ?? row.status,
+    rawStatus:     row.status,
     itemsCount:    row.items_count ?? 0,
     createdAt:     row.created_at,
+    startedAt:     row.started_at ?? null,
+    isMine,
     urgencyLabel:  urgencyLabelFor(row.delivery_date),
   };
 }
@@ -121,9 +125,9 @@ function toOrderDto(row) {
   };
 }
 
-export async function listAvailableOrders() {
-  const rows = await listAvailableOrdersForStockist();
-  return rows.map(toAvailableOrderDto);
+export async function listAvailableOrders({ userId } = {}) {
+  const rows = await listAvailableOrdersForStockist(userId);
+  return rows.map((row) => toAvailableOrderDto(row, { userId }));
 }
 
 // Inicia separação de um pedido específico para o estoquista logado.
@@ -132,10 +136,19 @@ export async function listAvailableOrders() {
 export async function startPicking({ orderId, userId }) {
   const existing = await findActivePickingByUser(userId);
   if (existing) {
+    // Caso especial: clicou no MESMO pedido que já está em separação.
+    // Não é conflito — apenas retoma normalmente.
+    if (existing.id === orderId) {
+      return getOrderWithProgress(orderId);
+    }
     throw {
       status: 409,
-      message: 'Você já possui um pedido em separação. Finalize ou retome o pedido atual.',
-      data: { activeOrderId: existing.id },
+      message: `Você já possui o pedido ${existing.order_number} em separação. Finalize-o antes de iniciar outro.`,
+      data: {
+        activeOrderId:     existing.id,
+        activeOrderNumber: existing.order_number,
+        activeClientName:  existing.customer_name,
+      },
     };
   }
 

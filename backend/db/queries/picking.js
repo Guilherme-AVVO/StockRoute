@@ -12,10 +12,12 @@ import sql from '../pool.js';
 // (assigned_to IS NULL).
 // ============================================================
 
-// Lista pedidos publicados aguardando separação.
-// Ordena por delivery_date (mais próxima primeiro) e cai para created_at quando
-// a data de entrega não foi cadastrada (NULLS LAST).
-export async function listAvailableOrdersForStockist() {
+// Lista pedidos visíveis na fila do estoquista:
+//   - o pedido EM_SEPARACAO (PICKING) atribuído ao próprio estoquista, se houver,
+//     vem sempre no topo para ele lembrar que precisa terminá-lo;
+//   - depois, pedidos publicados (IN_PROGRESS) sem atribuição, ordenados por
+//     delivery_date (mais próxima primeiro) e created_at como desempate.
+export async function listAvailableOrdersForStockist(userId) {
   return sql`
     SELECT
       o.id,
@@ -23,8 +25,10 @@ export async function listAvailableOrdersForStockist() {
       o.customer_name,
       o.status,
       o.delivery_date,
+      o.started_at,
       o.created_at,
       o.updated_at,
+      o.assigned_to,
       (
         SELECT COUNT(*)::int
         FROM order_items oi
@@ -32,9 +36,12 @@ export async function listAvailableOrdersForStockist() {
           AND oi.hidden = FALSE
       ) AS items_count
     FROM orders o
-    WHERE o.status = 'IN_PROGRESS'
-      AND o.assigned_to IS NULL
-    ORDER BY o.delivery_date ASC NULLS LAST, o.created_at ASC
+    WHERE (o.status = 'IN_PROGRESS' AND o.assigned_to IS NULL)
+       OR (o.status = 'PICKING' AND o.assigned_to = ${userId})
+    ORDER BY
+      CASE WHEN o.status = 'PICKING' THEN 0 ELSE 1 END,
+      o.delivery_date ASC NULLS LAST,
+      o.created_at ASC
   `;
 }
 

@@ -61,9 +61,9 @@ function publicPhotoUrl(filename) {
 // Handlers
 // ------------------------------------------------------------
 
-export async function listAvailableOrdersController(_req, res, next) {
+export async function listAvailableOrdersController(req, res, next) {
   try {
-    const items = await listAvailableOrders();
+    const items = await listAvailableOrders({ userId: req.user.id });
     res.json({ items });
   } catch (err) { next(err); }
 }
@@ -85,7 +85,12 @@ export async function startPickingController(req, res, next) {
     res.status(200).json(order);
   } catch (err) {
     if (err?.status === 409 && err?.data?.activeOrderId) {
-      return res.status(409).json({ message: err.message, activeOrderId: err.data.activeOrderId });
+      return res.status(409).json({
+        message:           err.message,
+        activeOrderId:     err.data.activeOrderId,
+        activeOrderNumber: err.data.activeOrderNumber ?? null,
+        activeClientName:  err.data.activeClientName ?? null,
+      });
     }
     next(err);
   }
