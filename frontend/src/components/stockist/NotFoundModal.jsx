@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import StockistModal from './StockistModal.jsx';
-import { NOT_FOUND_REASONS } from '../../pages/stockist/mockData.js';
+import { NOT_FOUND_REASONS } from '../../pages/stockist/stockistFormat.js';
 
-// Modal exibido ao tocar em "Não encontrado" em um item.
+// Modal de "Não encontrado".
 // - motivo é obrigatório;
-// - se motivo for OUTRO, a observação textual também é obrigatória.
-export default function NotFoundModal({ open, onClose, item, onConfirm }) {
+// - se motivo for "Outro", a observação textual também é obrigatória;
+// - o item só é marcado como NAO_ENCONTRADO após o sucesso da chamada à API
+//   (a responsabilidade do envio fica no pai, via onConfirm).
+export default function NotFoundModal({ open, onClose, item, onConfirm, busy }) {
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
 
@@ -18,17 +20,15 @@ export default function NotFoundModal({ open, onClose, item, onConfirm }) {
 
   if (!item) return null;
 
-  const reasonOther = reason === 'OUTRO';
-  const canConfirm = reason && (!reasonOther || note.trim().length >= 3);
+  const reasonOther = reason === 'Outro';
+  const canConfirm = !!reason && (!reasonOther || note.trim().length >= 3) && !busy;
 
   function handleConfirm() {
     if (!canConfirm) return;
     onConfirm?.({
       itemId: item.id,
       reason,
-      reasonLabel: NOT_FOUND_REASONS.find((r) => r.value === reason)?.label ?? reason,
-      note: note.trim(),
-      reportedAt: new Date().toISOString(),
+      notes: note.trim(),
     });
   }
 
@@ -41,7 +41,7 @@ export default function NotFoundModal({ open, onClose, item, onConfirm }) {
       footerRow={true}
       footer={(
         <>
-          <button type="button" className="stk-btn stk-btn-secondary" onClick={onClose}>
+          <button type="button" className="stk-btn stk-btn-secondary" onClick={onClose} disabled={busy}>
             Cancelar
           </button>
           <button
@@ -51,19 +51,19 @@ export default function NotFoundModal({ open, onClose, item, onConfirm }) {
             disabled={!canConfirm}
             aria-disabled={!canConfirm}
           >
-            Confirmar
+            {busy ? 'Enviando…' : 'Confirmar'}
           </button>
         </>
       )}
     >
       <div className="stk-product-block">
         <div className="stk-product-block-info">
-          <p className="stk-product-block-name">{item.name}</p>
+          <p className="stk-product-block-name">{item.productName}</p>
           <div className="stk-product-block-meta">
             <span><b>Qtd:</b> {item.quantity} {item.unit}</span>
             <span><b>SKU:</b> {item.sku}</span>
-            <span><b>Fab.:</b> {item.manufacturer}</span>
-            <span><b>Ref.:</b> {item.manufacturerRef}</span>
+            {item.manufacturerName      && <span><b>Fab.:</b> {item.manufacturerName}</span>}
+            {item.manufacturerReference && <span><b>Ref.:</b> {item.manufacturerReference}</span>}
           </div>
         </div>
       </div>

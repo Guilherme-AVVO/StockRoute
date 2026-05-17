@@ -1,66 +1,156 @@
-import { useMemo, useState } from 'react';
-import { formatDate } from './mockData.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { formatDate } from './stockistFormat.js';
+import {
+  getPickingOrder,
+  collectItem as apiCollect,
+  markItemNotFound as apiMarkNotFound,
+  finishPicking as apiFinish,
+  resolveAssetUrl,
+} from '../../services/stockistService.js';
 import ProductReferenceModal from '../../components/stockist/ProductReferenceModal.jsx';
 import CollectItemModal from '../../components/stockist/CollectItemModal.jsx';
 import NotFoundModal from '../../components/stockist/NotFoundModal.jsx';
 import './StockistPicking.css';
 
 // Tela 2 — Separação do pedido.
-//
-// Recebe:
-//   - order: o pedido sendo separado;
-//   - picking: estado por item { [itemId]: { status, photoUrl?, reason?, note? } };
-//   - onUpdateItem(itemId, patch): atualiza o estado no pai (StockistApp);
-//   - onBack: volta para a lista de pedidos;
-//   - onFinish: navega para a tela de resumo final.
-//
-// Dados mockados apenas para montar o frontend.
-// Na próxima etapa serão substituídos por chamadas reais à API.
-export default function StockistPicking({ order, picking, onUpdateItem, onBack, onFinish }) {
+// Carrega o pedido + itens reais pelo orderId. Cada ação (coletar/marcar não
+// encontrado/finalizar) chama o backend e refresca o estado local com a resposta.
+export default function StockistPicking({ orderId, onBack, onFinish }) {
+  const [order, setOrder]       = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const [busy, setBusy]         = useState(false);
+
   const [refItem,     setRefItem]     = useState(null);
   const [collectItem, setCollectItem] = useState(null);
   const [notFoundItem, setNotFoundItem] = useState(null);
   const [filter,      setFilter]      = useState('TODOS');
 
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const data = await getPickingOrder(orderId);
+      setOrder(data);
+    } catch (err) {
+      setLoadError(err.message || 'Não foi possível carregar o pedido.');
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const items = order?.items ?? [];
+
   const stats = useMemo(() => {
     let coletados = 0, naoEncontrados = 0, pendentes = 0;
-    for (const it of order.items) {
-      const s = picking[it.id]?.status || 'PENDENTE';
-      if      (s === 'COLETADO')        coletados++;
-      else if (s === 'NAO_ENCONTRADO')  naoEncontrados++;
-      else                              pendentes++;
+    for (const it of items) {
+      if (it.status === 'COLETADO')             coletados++;
+      else if (it.status === 'NAO_ENCONTRADO')  naoEncontrados++;
+      else                                       pendentes++;
     }
-    const processed = order.items.length - pendentes;
-    const pct = order.items.length === 0 ? 0 : Math.round((processed / order.items.length) * 100);
-    return { coletados, naoEncontrados, pendentes, processed, total: order.items.length, pct };
-  }, [order.items, picking]);
+    const total = items.length;
+    const processed = total - pendentes;
+    const pct = total === 0 ? 0 : Math.round((processed / total) * 100);
+    return { coletados, naoEncontrados, pendentes, processed, total, pct };
+  }, [items]);
 
-  const allProcessed = stats.pendentes === 0;
+  const allProcessed = stats.total > 0 && stats.pendentes === 0;
   const hasNotFound  = stats.naoEncontrados > 0;
 
   const visibleItems = useMemo(() => {
-    if (filter === 'TODOS') return order.items;
-    return order.items.filter((it) => {
-      const s = picking[it.id]?.status || 'PENDENTE';
-      return s === filter;
+    if (filter === 'TODOS') return items;
+    return items.filter((it) => it.status === filter);
+  }, [items, filter]);
+
+  // Atualiza um item específico no estado local sem refazer o GET completo.
+  function patchItem(itemId, patch) {
+    setOrder((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)),
+      };
     });
-  }, [order.items, picking, filter]);
-
-  function handleCollect({ itemId, photoUrl, capturedAt }) {
-    onUpdateItem(itemId, { status: 'COLETADO', photoUrl, capturedAt });
-    setCollectItem(null);
   }
 
-  function handleNotFound({ itemId, reason, reasonLabel, note, reportedAt }) {
-    onUpdateItem(itemId, { status: 'NAO_ENCONTRADO', reason, reasonLabel, note, reportedAt });
-    setNotFoundItem(null);
+  async function handleCollect({ itemId, photoFile }) {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const updated = await apiCollect(itemId, photoFile);
+      patchItem(itemId, {
+        status: 'COLETADO',
+        rawStatus: updated.rawStatus,
+        confirmationPhotoUrl: updated.confirmationPhotoUrl,
+        collectedAt: updated.collectedAt,
+        reason: null,
+        notes: null,
+      });
+      setCollectItem(null);
+    } catch (err) {
+      setActionError(err.message || 'Não foi possível registrar a coleta.');
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function handleUndo(itemId) {
-    // libera o objectURL da foto, se houver
-    const cur = picking[itemId];
-    if (cur?.photoUrl) URL.revokeObjectURL(cur.photoUrl);
-    onUpdateItem(itemId, { status: 'PENDENTE', photoUrl: null, capturedAt: null, reason: null, reasonLabel: null, note: null, reportedAt: null });
+  async function handleNotFound({ itemId, reason, notes }) {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const updated = await apiMarkNotFound(itemId, { reason, notes });
+      patchItem(itemId, {
+        status: 'NAO_ENCONTRADO',
+        rawStatus: updated.rawStatus,
+        reason: updated.reason,
+        notes: updated.notes,
+        confirmationPhotoUrl: null,
+        collectedAt: null,
+      });
+      setNotFoundItem(null);
+    } catch (err) {
+      setActionError(err.message || 'Não foi possível registrar o item.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleFinish() {
+    if (!allProcessed || busy) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      await apiFinish(orderId);
+      onFinish?.();
+    } catch (err) {
+      setActionError(err.message || 'Não foi possível finalizar o pedido.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="stockist-shell">
+        <div className="stk-empty"><p>Carregando pedido…</p></div>
+      </div>
+    );
+  }
+
+  if (loadError || !order) {
+    return (
+      <div className="stockist-shell">
+        <div className="stk-empty stk-empty-error">
+          <h2>Erro ao carregar pedido</h2>
+          <p>{loadError || 'Pedido não encontrado.'}</p>
+          <button type="button" className="stk-btn stk-btn-secondary stk-btn-sm" onClick={load}>Tentar de novo</button>
+          <button type="button" className="stk-btn stk-btn-secondary stk-btn-sm" onClick={onBack}>Voltar</button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -81,16 +171,15 @@ export default function StockistPicking({ order, picking, onUpdateItem, onBack, 
             Em separação
           </span>
           <span className="stk-header-user" style={{ marginLeft: 'auto' }}>
-            <span>{order.dav}</span>
+            <span>{order.davNumber}</span>
           </span>
         </div>
 
-        <h1 style={{ fontSize: 20, marginTop: 8 }}>{order.customer}</h1>
+        <h1 style={{ fontSize: 20, marginTop: 8 }}>{order.clientName}</h1>
         <p className="stk-header-subtitle">
-          Entrega {formatDate(order.deliveryDate)} • {order.items.length} itens
+          Entrega {formatDate(order.deliveryDate)} • {stats.total} itens
         </p>
 
-        {/* Barra de progresso sempre visível */}
         <div className="stk-progress">
           <div className="stk-progress-top">
             <span className="stk-progress-count">
@@ -99,8 +188,8 @@ export default function StockistPicking({ order, picking, onUpdateItem, onBack, 
             <span className="stk-progress-pct">{stats.pct}%</span>
           </div>
           <div className="stk-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={stats.pct}>
-            <div className="stk-progress-fill stk-progress-fill-coletados"   style={{ width: `${(stats.coletados / stats.total) * 100}%` }} />
-            <div className="stk-progress-fill stk-progress-fill-naoencontrados" style={{ width: `${(stats.naoEncontrados / stats.total) * 100}%` }} />
+            <div className="stk-progress-fill stk-progress-fill-coletados"   style={{ width: stats.total ? `${(stats.coletados / stats.total) * 100}%` : 0 }} />
+            <div className="stk-progress-fill stk-progress-fill-naoencontrados" style={{ width: stats.total ? `${(stats.naoEncontrados / stats.total) * 100}%` : 0 }} />
           </div>
           <div className="stk-progress-legend">
             <span><i className="dot ok" /> {stats.coletados} coletados</span>
@@ -111,7 +200,15 @@ export default function StockistPicking({ order, picking, onUpdateItem, onBack, 
       </header>
 
       <main className="stk-content stk-picking-content">
-        {/* Filtros segmentados */}
+        {actionError && (
+          <div className="stk-empty stk-empty-error" style={{ marginBottom: 12 }}>
+            <p>{actionError}</p>
+            <button type="button" className="stk-btn stk-btn-secondary stk-btn-sm" onClick={() => setActionError(null)}>
+              Ok
+            </button>
+          </div>
+        )}
+
         <div className="stk-segmented" role="tablist" aria-label="Filtrar itens">
           {[
             { value: 'TODOS',          label: 'Todos',         count: stats.total },
@@ -144,17 +241,14 @@ export default function StockistPicking({ order, picking, onUpdateItem, onBack, 
             <ItemCard
               key={item.id}
               item={item}
-              state={picking[item.id] || { status: 'PENDENTE' }}
               onOpenRef={() => setRefItem(item)}
               onOpenCollect={() => setCollectItem(item)}
               onOpenNotFound={() => setNotFoundItem(item)}
-              onUndo={() => handleUndo(item.id)}
             />
           ))}
         </ul>
       </main>
 
-      {/* Barra fixa inferior — Finalizar pedido */}
       <div className="stk-finish-bar">
         {!allProcessed && (
           <p className="stk-finish-hint">
@@ -175,36 +269,41 @@ export default function StockistPicking({ order, picking, onUpdateItem, onBack, 
         <button
           type="button"
           className="stk-btn stk-btn-primary stk-finish-btn"
-          disabled={!allProcessed}
-          aria-disabled={!allProcessed}
-          onClick={onFinish}
+          disabled={!allProcessed || busy}
+          aria-disabled={!allProcessed || busy}
+          onClick={handleFinish}
         >
-          Finalizar pedido
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          {busy ? 'Finalizando…' : 'Finalizar pedido'}
+          {!busy && (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
         </button>
       </div>
 
       <ProductReferenceModal open={Boolean(refItem)} onClose={() => setRefItem(null)} item={refItem} />
-      <CollectItemModal     open={Boolean(collectItem)} onClose={() => setCollectItem(null)} item={collectItem} onConfirm={handleCollect} />
-      <NotFoundModal        open={Boolean(notFoundItem)} onClose={() => setNotFoundItem(null)} item={notFoundItem} onConfirm={handleNotFound} />
+      <CollectItemModal open={Boolean(collectItem)} onClose={() => setCollectItem(null)} item={collectItem} onConfirm={handleCollect} busy={busy} />
+      <NotFoundModal    open={Boolean(notFoundItem)} onClose={() => setNotFoundItem(null)} item={notFoundItem} onConfirm={handleNotFound} busy={busy} />
     </div>
   );
 }
 
-function ItemCard({ item, state, onOpenRef, onOpenCollect, onOpenNotFound, onUndo }) {
-  const status = state.status || 'PENDENTE';
+function ItemCard({ item, onOpenRef, onOpenCollect, onOpenNotFound }) {
+  const status = item.status || 'PENDENTE';
   const isPending  = status === 'PENDENTE';
   const isCollected = status === 'COLETADO';
   const isNotFound = status === 'NAO_ENCONTRADO';
+
+  const referenceUrl    = resolveAssetUrl(item.productPhotoUrl);
+  const confirmationUrl = resolveAssetUrl(item.confirmationPhotoUrl);
 
   return (
     <li className={`stk-item stk-item-${status.toLowerCase().replace('_', '-')}`}>
       <div className="stk-item-head">
         <div className="stk-item-thumb">
-          {item.referencePhotoUrl ? (
-            <img src={item.referencePhotoUrl} alt="" />
+          {referenceUrl ? (
+            <img src={referenceUrl} alt="" />
           ) : (
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.6" />
@@ -212,7 +311,6 @@ function ItemCard({ item, state, onOpenRef, onOpenCollect, onOpenNotFound, onUnd
               <path d="M21 17l-5-5-9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
-          {/* Selo de status sobre a thumb */}
           {isCollected && (
             <span className="stk-item-stamp ok" aria-hidden="true">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -230,11 +328,11 @@ function ItemCard({ item, state, onOpenRef, onOpenCollect, onOpenNotFound, onUnd
         </div>
 
         <div className="stk-item-info">
-          <p className="stk-item-name">{item.name}</p>
+          <p className="stk-item-name">{item.productName}</p>
           <div className="stk-item-meta">
             <span><b>SKU:</b> {item.sku}</span>
-            <span><b>Ref.:</b> {item.manufacturerRef}</span>
-            <span className="stk-item-meta-fab">{item.manufacturer}</span>
+            {item.manufacturerReference && <span><b>Ref.:</b> {item.manufacturerReference}</span>}
+            {item.manufacturerName && <span className="stk-item-meta-fab">{item.manufacturerName}</span>}
           </div>
           <div className="stk-item-qty">
             <span className="stk-item-qty-num">{item.quantity}</span>
@@ -246,7 +344,6 @@ function ItemCard({ item, state, onOpenRef, onOpenCollect, onOpenNotFound, onUnd
         </div>
       </div>
 
-      {/* Painel inferior — muda conforme o status */}
       {isPending && (
         <div className="stk-item-actions">
           <button type="button" className="stk-btn stk-btn-secondary" onClick={onOpenRef}>
@@ -276,8 +373,8 @@ function ItemCard({ item, state, onOpenRef, onOpenCollect, onOpenNotFound, onUnd
 
       {isCollected && (
         <div className="stk-item-status">
-          {state.photoUrl && (
-            <img src={state.photoUrl} alt="Foto da coleta" className="stk-item-evidence" />
+          {confirmationUrl && (
+            <img src={confirmationUrl} alt="Foto da coleta" className="stk-item-evidence" />
           )}
           <div className="stk-item-status-info">
             <span className="stk-item-status-title ok">
@@ -286,7 +383,6 @@ function ItemCard({ item, state, onOpenRef, onOpenCollect, onOpenNotFound, onUnd
               </svg>
               Coletado com foto
             </span>
-            <button type="button" className="stk-item-undo" onClick={onUndo}>Desfazer</button>
           </div>
         </div>
       )}
@@ -299,10 +395,9 @@ function ItemCard({ item, state, onOpenRef, onOpenCollect, onOpenNotFound, onUnd
                 <path d="M12 3 2 21h20L12 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
                 <path d="M12 10v5M12 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
-              {state.reasonLabel || 'Não encontrado'}
+              {item.reason || 'Não encontrado'}
             </span>
-            {state.note && <p className="stk-item-note">{state.note}</p>}
-            <button type="button" className="stk-item-undo" onClick={onUndo}>Desfazer</button>
+            {item.notes && <p className="stk-item-note">{item.notes}</p>}
           </div>
         </div>
       )}

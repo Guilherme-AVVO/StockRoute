@@ -1,21 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import StockistModal from './StockistModal.jsx';
+import { resolveAssetUrl } from '../../services/stockistService.js';
 
 // Modal de confirmação de coleta com captura de foto.
 // - usa <input type="file" accept="image/*" capture="environment"> para abrir
 //   diretamente a câmera traseira no celular;
-// - botão "Confirmar coleta" fica desabilitado enquanto não houver foto;
-// - permite trocar a foto antes de confirmar;
-// - nesta etapa a foto NÃO é enviada para o backend, fica apenas no state local.
-export default function CollectItemModal({ open, onClose, item, onConfirm }) {
+// - foto é obrigatória; "Confirmar coleta" fica desabilitado enquanto não houver foto;
+// - delega ao pai (onConfirm) o envio do arquivo ao backend. O item só é marcado
+//   como COLETADO após a resposta da API.
+export default function CollectItemModal({ open, onClose, item, onConfirm, busy }) {
   const [photoUrl, setPhotoUrl] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const inputRef = useRef(null);
 
-  // Limpa o estado interno toda vez que o modal fecha ou troca de item.
   useEffect(() => {
     if (!open) {
-      // libera o objectURL para não vazar memória
       if (photoUrl) URL.revokeObjectURL(photoUrl);
       setPhotoUrl(null);
       setPhotoFile(null);
@@ -39,15 +38,11 @@ export default function CollectItemModal({ open, onClose, item, onConfirm }) {
 
   function handleConfirm() {
     if (!photoFile) return;
-    onConfirm?.({
-      itemId: item.id,
-      photoFile,
-      photoUrl,
-      capturedAt: new Date().toISOString(),
-    });
+    onConfirm?.({ itemId: item.id, photoFile });
   }
 
-  const canConfirm = Boolean(photoFile);
+  const canConfirm = Boolean(photoFile) && !busy;
+  const referenceUrl = resolveAssetUrl(item.productPhotoUrl);
 
   return (
     <StockistModal
@@ -58,7 +53,7 @@ export default function CollectItemModal({ open, onClose, item, onConfirm }) {
       footerRow={true}
       footer={(
         <>
-          <button type="button" className="stk-btn stk-btn-secondary" onClick={onClose}>
+          <button type="button" className="stk-btn stk-btn-secondary" onClick={onClose} disabled={busy}>
             Cancelar
           </button>
           <button
@@ -71,15 +66,15 @@ export default function CollectItemModal({ open, onClose, item, onConfirm }) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="m5 12 5 5L20 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Confirmar coleta
+            {busy ? 'Enviando…' : 'Confirmar coleta'}
           </button>
         </>
       )}
     >
       <div className="stk-product-block">
         <div className="stk-product-block-thumb">
-          {item.referencePhotoUrl ? (
-            <img src={item.referencePhotoUrl} alt="" />
+          {referenceUrl ? (
+            <img src={referenceUrl} alt="" />
           ) : (
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.6" />
@@ -89,12 +84,12 @@ export default function CollectItemModal({ open, onClose, item, onConfirm }) {
           )}
         </div>
         <div className="stk-product-block-info">
-          <p className="stk-product-block-name">{item.name}</p>
+          <p className="stk-product-block-name">{item.productName}</p>
           <div className="stk-product-block-meta">
             <span><b>Qtd:</b> {item.quantity} {item.unit}</span>
             <span><b>SKU:</b> {item.sku}</span>
-            <span><b>Fab.:</b> {item.manufacturer}</span>
-            <span><b>Ref.:</b> {item.manufacturerRef}</span>
+            {item.manufacturerName      && <span><b>Fab.:</b> {item.manufacturerName}</span>}
+            {item.manufacturerReference && <span><b>Ref.:</b> {item.manufacturerReference}</span>}
           </div>
         </div>
       </div>
@@ -124,7 +119,7 @@ export default function CollectItemModal({ open, onClose, item, onConfirm }) {
         <div className="stk-photo-capture has-photo">
           <img src={photoUrl} alt="Prévia da foto de coleta" />
           <div className="stk-photo-capture-actions">
-            <button type="button" className="stk-btn stk-btn-secondary stk-btn-sm" onClick={handleReplace}>
+            <button type="button" className="stk-btn stk-btn-secondary stk-btn-sm" onClick={handleReplace} disabled={busy}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -142,7 +137,7 @@ export default function CollectItemModal({ open, onClose, item, onConfirm }) {
         </div>
       )}
 
-      {!canConfirm && (
+      {!photoFile && (
         <p className="stk-field-hint" style={{ marginTop: 10 }}>
           A foto é obrigatória para confirmar a coleta.
         </p>

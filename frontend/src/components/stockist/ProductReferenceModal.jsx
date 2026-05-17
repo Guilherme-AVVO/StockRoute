@@ -1,13 +1,15 @@
 import StockistModal from './StockistModal.jsx';
+import { resolveAssetUrl } from '../../services/stockistService.js';
 
 // Modal exibido ao tocar em "Referência" em um item do picking.
 // Mostra a foto de referência cadastrada do produto + ficha técnica.
 // IMPORTANTE: essa foto é apenas para o estoquista identificar o produto.
-// NÃO é a foto de confirmação da coleta.
+// NÃO é a foto de confirmação da coleta (essa fica em confirmation_photo_url).
 export default function ProductReferenceModal({ open, onClose, item }) {
   if (!item) return null;
 
-  const hasRefPhoto = Boolean(item.referencePhotoUrl);
+  const referenceUrl = resolveAssetUrl(item.productPhotoUrl);
+  const hasRefPhoto = Boolean(referenceUrl);
 
   return (
     <StockistModal
@@ -24,7 +26,7 @@ export default function ProductReferenceModal({ open, onClose, item }) {
     >
       <div className="stk-ref-photo">
         {hasRefPhoto ? (
-          <img src={item.referencePhotoUrl} alt={`Referência: ${item.name}`} />
+          <img src={referenceUrl} alt={`Referência: ${item.productName}`} />
         ) : (
           <>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -39,7 +41,7 @@ export default function ProductReferenceModal({ open, onClose, item }) {
       </div>
 
       <h3 style={{ font: '600 15px/1.3 var(--font-display)', margin: '4px 0 6px' }}>
-        {item.name}
+        {item.productName}
       </h3>
 
       <div className="stk-detail-list">
@@ -49,11 +51,11 @@ export default function ProductReferenceModal({ open, onClose, item }) {
         </div>
         <div className="stk-detail-row">
           <span className="stk-detail-label">Fabricante</span>
-          <span className="stk-detail-value">{item.manufacturer}</span>
+          <span className="stk-detail-value">{item.manufacturerName || '—'}</span>
         </div>
         <div className="stk-detail-row">
           <span className="stk-detail-label">Ref. fabricante</span>
-          <span className="stk-detail-value">{item.manufacturerRef}</span>
+          <span className="stk-detail-value">{item.manufacturerReference || '—'}</span>
         </div>
         <div className="stk-detail-row">
           <span className="stk-detail-label">Unidade</span>
@@ -64,20 +66,6 @@ export default function ProductReferenceModal({ open, onClose, item }) {
           <span className="stk-detail-value">{item.quantity} {item.unit}</span>
         </div>
       </div>
-
-      {item.description && (
-        <div className="stk-detail-block">
-          <div className="stk-detail-block-label">Descrição</div>
-          {item.description}
-        </div>
-      )}
-
-      {item.notes && (
-        <div className="stk-detail-block" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
-          <div className="stk-detail-block-label" style={{ color: 'var(--warning)' }}>Observações</div>
-          {item.notes}
-        </div>
-      )}
 
       <div className="stk-info-banner">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">

@@ -5,6 +5,7 @@ validateEnv();
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import path from 'node:path';
 import authRoutes            from './routes/authRoutes.js';
 import productRoutes         from './routes/productRoutes.js';
 import ignoredDavItemsRoutes from './routes/ignoredDavItemsRoutes.js';
@@ -13,6 +14,7 @@ import dashboardRoutes       from './routes/dashboardRoutes.js';
 import unlinkedDavItemsRoutes from './routes/unlinkedDavItemsRoutes.js';
 import auditRoutes            from './routes/auditRoutes.js';
 import userRoutes             from './routes/userRoutes.js';
+import pickingRoutes          from './routes/pickingRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
@@ -105,6 +107,11 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', message: 'API StockRoute funcionando' });
 });
 
+// Arquivos enviados (fotos de coleta do picking) — público para o frontend
+// conseguir exibir as evidências sem autenticação extra. Caminho relativo ao
+// processo é convertido para absoluto pelo path.resolve.
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+
 app.use('/auth',               authRoutes);
 app.use('/products',           productRoutes);
 app.use('/ignored-dav-items',  ignoredDavItemsRoutes);
@@ -113,6 +120,7 @@ app.use('/dashboard',          dashboardRoutes);
 app.use('/unlinked-dav-items', unlinkedDavItemsRoutes);
 app.use('/audit-events',       auditRoutes);
 app.use('/users',              userRoutes);
+app.use('/stockist',           pickingRoutes);
 
 // 404 para rotas inexistentes
 app.use((_req, res) => {

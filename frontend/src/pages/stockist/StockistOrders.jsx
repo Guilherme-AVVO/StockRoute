@@ -1,31 +1,68 @@
-import { useMemo, useState } from 'react';
-import { MOCK_ORDERS, classifyDelivery, formatDate } from './mockData.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { classifyDelivery, formatDate } from './stockistFormat.js';
+import {
+  listAvailableOrders,
+  startPicking,
+} from '../../services/stockistService.js';
 import './StockistOrders.css';
 
 // Tela 1 — Pedidos disponíveis para separação.
-// - mostra apenas pedidos com status AGUARDANDO;
-// - cada card tem indicador de entrega (hoje / próxima / atrasado);
-// - estados: loading, vazio, erro, busca por DAV/cliente.
-//
-// Dados mockados apenas para montar o frontend.
-// Na próxima etapa serão substituídos por chamadas reais à API.
+// Dados 100% reais: chamamos GET /stockist/orders e tratamos loading/erro/vazio.
+// O backend já filtra por status=IN_PROGRESS e assigned_to IS NULL e ordena por
+// delivery_date (mais próxima primeiro).
 export default function StockistOrders({ user, onStart, onLogout }) {
-  // Em produção, esse estado vem de um useEffect + chamada à API.
-  // Aqui usamos diretamente o mock e expomos os estados visuais possíveis.
-  const [orders] = useState(MOCK_ORDERS);
-  const [loading] = useState(false);
-  const [error]   = useState(null);
-  const [query, setQuery] = useState('');
+  const [orders, setOrders]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+  const [query, setQuery]     = useState('');
+  const [starting, setStarting] = useState(null); // orderId em transição
 
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await listAvailableOrders();
+      setOrders(data.items ?? []);
+    } catch (err) {
+      setError(err.message || 'Erro ao carregar pedidos');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Filtro client-side por DAV ou cliente.
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const onlyWaiting = orders.filter((o) => o.status === 'AGUARDANDO');
-    if (!q) return onlyWaiting;
-    return onlyWaiting.filter((o) =>
-      o.dav.toLowerCase().includes(q) ||
-      o.customer.toLowerCase().includes(q)
+    if (!q) return orders;
+    return orders.filter((o) =>
+      (o.davNumber ?? '').toLowerCase().includes(q) ||
+      (o.clientName ?? '').toLowerCase().includes(q)
     );
   }, [orders, query]);
+
+  async function handleStart(orderId) {
+    setStarting(orderId);
+    setError(null);
+    try {
+      const order = await startPicking(orderId);
+      onStart?.(order.id);
+    } catch (err) {
+      if (err.status === 409) {
+        // Estoquista já tem outro pedido em separação — orienta a retomá-lo.
+        setError('Você já possui um pedido em separação. Finalize ou retome o pedido atual.');
+        if (err.data?.activeOrderId) {
+          onStart?.(err.data.activeOrderId);
+          return;
+        }
+      } else {
+        setError(err.message || 'Não foi possível iniciar a separação.');
+      }
+    } finally {
+      setStarting(null);
+    }
+  }
 
   return (
     <div className="stockist-shell">
@@ -95,8 +132,10 @@ export default function StockistOrders({ user, onStart, onLogout }) {
               </svg>
             </div>
             <h2>Erro ao carregar pedidos</h2>
-            <p>Não conseguimos contatar o servidor. Verifique sua conexão e tente novamente.</p>
-            <button type="button" className="stk-btn stk-btn-secondary stk-btn-sm">Tentar de novo</button>
+            <p>{error}</p>
+            <button type="button" className="stk-btn stk-btn-secondary stk-btn-sm" onClick={load}>
+              Tentar de novo
+            </button>
           </div>
         )}
 
@@ -119,7 +158,13 @@ export default function StockistOrders({ user, onStart, onLogout }) {
         {!loading && !error && filtered.length > 0 && (
           <ul className="stk-orders-list">
             {filtered.map((order) => (
-              <OrderCard key={order.id} order={order} onStart={() => onStart?.(order.id)} />
+              <OrderCard
+                key={order.id}
+                order={order}
+                onStart={() => handleStart(order.id)}
+                starting={starting === order.id}
+                disabled={starting !== null && starting !== order.id}
+              />
             ))}
           </ul>
         )}
@@ -128,14 +173,14 @@ export default function StockistOrders({ user, onStart, onLogout }) {
   );
 }
 
-function OrderCard({ order, onStart }) {
+function OrderCard({ order, onStart, starting, disabled }) {
   const delivery = classifyDelivery(order.deliveryDate);
   return (
     <li className={`stk-order-card stk-order-${delivery.kind}`}>
       <div className="stk-order-head">
         <div>
-          <span className="stk-order-dav">{order.dav}</span>
-          <h3 className="stk-order-customer">{order.customer}</h3>
+          <span className="stk-order-dav">{order.davNumber}</span>
+          <h3 className="stk-order-customer">{order.clientName}</h3>
         </div>
         <span className="stk-badge aguardando">Aguardando</span>
       </div>
@@ -147,7 +192,7 @@ function OrderCard({ order, onStart }) {
         </div>
         <div className="stk-order-meta-item">
           <span className="stk-order-meta-label">Itens</span>
-          <span className="stk-order-meta-value">{order.items.length}</span>
+          <span className="stk-order-meta-value">{order.itemsCount ?? 0}</span>
         </div>
         <div className="stk-order-meta-item">
           <span className="stk-order-meta-label">Recebido</span>
@@ -166,13 +211,21 @@ function OrderCard({ order, onStart }) {
           {delivery.kind === 'proxima' && (
             <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.8" /><path d="M3 9h18M8 3v4M16 3v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
           )}
-          {delivery.label}
+          {order.urgencyLabel || delivery.label}
         </span>
-        <button type="button" className="stk-btn stk-btn-primary" onClick={onStart}>
-          Iniciar separação
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <button
+          type="button"
+          className="stk-btn stk-btn-primary"
+          onClick={onStart}
+          disabled={disabled || starting}
+          aria-disabled={disabled || starting}
+        >
+          {starting ? 'Iniciando…' : 'Iniciar separação'}
+          {!starting && (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
         </button>
       </div>
     </li>
