@@ -109,6 +109,9 @@ export async function collectItemController(req, res, next) {
       user:     req.user,
       photoUrl,
     });
+    const productLabel = order.product_name
+      ? `${order.product_name}${order.product_sku ? ` (${order.product_sku})` : ''}`
+      : `Item ${item.id}`;
     await logAuditEvent({
       eventType:    AUDIT_EVENT_TYPES.PICKING_ITEM_COLLECTED,
       entityType:   'order_item',
@@ -119,9 +122,10 @@ export async function collectItemController(req, res, next) {
       clientName:   order.customer_name,
       status:       'Em separação',
       title:        'Item coletado',
-      description:  `Item ${item.id} marcado como coletado por ${req.user.name ?? req.user.email}.`,
+      description:  `${productLabel} marcado como coletado por ${req.user.name ?? req.user.email}.`,
       evidenceType: 'image',
       evidenceUrl:  photoUrl,
+      metadata:     { productId: item.product_id, productName: order.product_name, sku: order.product_sku },
     }, { req });
     res.json({
       id:                    item.id,
@@ -150,6 +154,9 @@ export async function markItemNotFoundController(req, res, next) {
       reason,
       notes,
     });
+    const productLabel = order.product_name
+      ? `${order.product_name}${order.product_sku ? ` (${order.product_sku})` : ''}`
+      : `Item ${item.id}`;
     await logAuditEvent({
       eventType:   AUDIT_EVENT_TYPES.PICKING_ITEM_NOT_FOUND,
       entityType:  'order_item',
@@ -160,8 +167,8 @@ export async function markItemNotFoundController(req, res, next) {
       clientName:  order.customer_name,
       status:      'Em separação',
       title:       'Item não encontrado',
-      description: `Item ${item.id} marcado como não encontrado por ${req.user.name ?? req.user.email}. Motivo: ${reason}.`,
-      metadata:    { reason, hasNotes: Boolean(notes?.trim()) },
+      description: `${productLabel} marcado como não encontrado por ${req.user.name ?? req.user.email}. Motivo: ${reason}.`,
+      metadata:    { reason, hasNotes: Boolean(notes?.trim()), productId: item.product_id, productName: order.product_name, sku: order.product_sku },
     }, { req });
     res.json({
       id:                    item.id,

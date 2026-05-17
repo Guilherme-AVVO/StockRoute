@@ -128,6 +128,8 @@ export async function listPickingItems(orderId) {
 }
 
 // Item individual com o pedido, usado para validar permissões e estado.
+// Inclui product_name/sku para que controllers possam produzir descrições
+// legíveis (auditoria) sem precisar consultar products de novo.
 export async function findOrderItemForPicking(itemId) {
   const rows = await sql`
     SELECT
@@ -146,9 +148,13 @@ export async function findOrderItemForPicking(itemId) {
       o.status      AS order_status,
       o.assigned_to AS order_assigned_to,
       o.order_number,
-      o.customer_name
+      o.customer_name,
+      p.name        AS product_name,
+      p.sku         AS product_sku,
+      p.unit        AS product_unit
     FROM order_items oi
-    JOIN orders o ON o.id = oi.order_id
+    JOIN orders o   ON o.id = oi.order_id
+    JOIN products p ON p.id = oi.product_id
     WHERE oi.id = ${itemId}
     LIMIT 1
   `;
