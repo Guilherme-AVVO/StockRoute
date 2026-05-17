@@ -118,13 +118,19 @@ export async function findOrderItems(orderId) {
       oi.picked_quantity,
       oi.missing_quantity,
       oi.status,
+      oi.confirmation_photo_url,
+      oi.collected_at,
+      oi.not_found_reason,
+      oi.not_found_notes,
       oi.created_at,
       oi.updated_at,
       p.id                AS product_id,
       p.sku               AS product_sku,
       p.name              AS product_name,
       p.unit              AS product_unit,
-      p.image_url         AS product_image_url
+      p.image_url         AS product_image_url,
+      p.manufacturer_name      AS product_manufacturer_name,
+      p.manufacturer_reference AS product_manufacturer_reference
     FROM order_items oi
     JOIN products p ON p.id = oi.product_id
     WHERE oi.order_id = ${orderId}

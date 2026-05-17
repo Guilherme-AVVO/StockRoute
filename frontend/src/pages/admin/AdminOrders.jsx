@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatCard from '../../components/admin/StatCard.jsx';
-import { listOrders, publishOrder } from '../../services/orderService.js';
+import {
+  listOrders,
+  publishOrder,
+  getOrder,
+  resolveMissingItem,
+  shipOrderWithMissing,
+} from '../../services/orderService.js';
+import { resolveAssetUrl } from '../../services/stockistService.js';
 import { api } from '../../services/api.js';
 import './AdminOrders.css';
 
 const STATUS_LABEL = {
   PENDING:     { label: 'Aguardando revisão', cls: 'aguardando' },
-  IN_PROGRESS: { label: 'Em separação',       cls: 'em-separacao' },
+  IN_PROGRESS: { label: 'Aguardando picking', cls: 'aguardando' },
+  PICKING:     { label: 'Em separação',       cls: 'em-separacao' },
+  OBSERVATION: { label: 'Em observação',      cls: 'observacao' },
   COMPLETED:   { label: 'Concluído',          cls: 'concluido' },
   CANCELLED:   { label: 'Cancelado',          cls: 'cancelado' },
 };
@@ -14,7 +23,9 @@ const STATUS_LABEL = {
 const STATUS_FILTERS = [
   { id: 'all',         label: 'Todos' },
   { id: 'PENDING',     label: 'Aguardando' },
-  { id: 'IN_PROGRESS', label: 'Em separação' },
+  { id: 'IN_PROGRESS', label: 'Publicado' },
+  { id: 'PICKING',     label: 'Em separação' },
+  { id: 'OBSERVATION', label: 'Em observação' },
   { id: 'COMPLETED',   label: 'Concluído' },
   { id: 'CANCELLED',   label: 'Cancelado' },
 ];
@@ -76,6 +87,16 @@ export default function AdminOrders({ onNavigate, onOpenUpload }) {
   const [feedback, setFeedback] = useState(null);
   const [publishing, setPublishing] = useState(false);
 
+  // Detalhes completos do pedido aberto no modal (itens + fotos) — só carregado
+  // quando o ADMIN abre um pedido OBSERVATION.
+  const [modalDetail, setModalDetail]   = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError]     = useState(null);
+  const [resolvingItemId, setResolvingItemId] = useState(null);
+  const [shipping, setShipping]               = useState(false);
+  const [shipNotes, setShipNotes]             = useState('');
+  const [showShipConfirm, setShowShipConfirm] = useState(false);
+
   const reload = useCallback(() => {
     setLoading(true);
     Promise.all([
@@ -98,13 +119,78 @@ export default function AdminOrders({ onNavigate, onOpenUpload }) {
     });
   }, [orders, statusFilter, search]);
 
+  const loadModalDetail = useCallback(async (orderId) => {
+    setModalLoading(true);
+    setModalError(null);
+    try {
+      const detail = await getOrder(orderId);
+      setModalDetail(detail);
+    } catch (err) {
+      setModalError(err.message || 'Erro ao carregar detalhes do pedido.');
+    } finally {
+      setModalLoading(false);
+    }
+  }, []);
+
   function openOrderAction(order) {
     setSelectedOrder(order);
     setFeedback(null);
     setModalOrder(order);
+    setModalDetail(null);
+    setShowShipConfirm(false);
+    setShipNotes('');
+    // OBSERVATION precisa dos itens (MISSING) para listar pendências; outros
+    // status só usam a meta do card.
+    if (order.status === 'OBSERVATION') {
+      loadModalDetail(order.id);
+    }
   }
 
-  function closeModal() { setModalOrder(null); setFeedback(null); }
+  function closeModal() {
+    setModalOrder(null);
+    setModalDetail(null);
+    setModalError(null);
+    setShowShipConfirm(false);
+    setShipNotes('');
+    setFeedback(null);
+  }
+
+  async function handleResolveMissing(itemId, photoFile) {
+    if (!modalOrder || !photoFile) return;
+    setResolvingItemId(itemId);
+    try {
+      const result = await resolveMissingItem(modalOrder.id, itemId, photoFile);
+      setFeedback(result.autoPromoted
+        ? 'Item resolvido e pedido concluído.'
+        : `Item resolvido. ${result.remainingMissing} pendência(s) restante(s).`);
+      // Refresca o modal e a lista para refletir o novo estado.
+      await loadModalDetail(modalOrder.id);
+      if (result.autoPromoted) {
+        // Pedido virou COMPLETED — sai do estado OBSERVATION; fecha o modal.
+        closeModal();
+      }
+      reload();
+    } catch (err) {
+      setModalError(err.message || 'Não foi possível resolver o item.');
+    } finally {
+      setResolvingItemId(null);
+    }
+  }
+
+  async function handleShipWithMissing() {
+    if (!modalOrder) return;
+    setShipping(true);
+    try {
+      await shipOrderWithMissing(modalOrder.id, { notes: shipNotes.trim() || null });
+      setFeedback('Pedido enviado com pendência. Itens faltantes ficaram registrados no histórico.');
+      closeModal();
+      reload();
+    } catch (err) {
+      setModalError(err.message || 'Não foi possível enviar o pedido.');
+    } finally {
+      setShipping(false);
+    }
+  }
 
   async function handlePublish(order) {
     setPublishing(true);
@@ -123,6 +209,8 @@ export default function AdminOrders({ onNavigate, onOpenUpload }) {
   function getOrderAction(order) {
     if (order.status === 'PENDING')     return 'Publicar';
     if (order.status === 'IN_PROGRESS') return 'Acompanhar';
+    if (order.status === 'PICKING')     return 'Acompanhar';
+    if (order.status === 'OBSERVATION') return 'Resolver pendências';
     return 'Ver';
   }
 
@@ -325,6 +413,61 @@ export default function AdminOrders({ onNavigate, onOpenUpload }) {
                   </div>
                 </div>
               )}
+              {modalOrder.status === 'OBSERVATION' && (
+                <div className="orders-modal-section">
+                  <p>
+                    Este pedido foi finalizado com itens não encontrados. Resolva cada pendência
+                    (registrando foto da coleta) ou autorize o envio do pedido mesmo com falta.
+                  </p>
+                  {modalLoading && <p>Carregando pendências…</p>}
+                  {modalError && <div className="orders-modal-feedback" role="status">{modalError}</div>}
+                  {!modalLoading && modalDetail && (
+                    <PendingItemsList
+                      items={modalDetail.items}
+                      resolvingItemId={resolvingItemId}
+                      onResolve={handleResolveMissing}
+                    />
+                  )}
+
+                  <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '14px 0' }} />
+
+                  {!showShipConfirm && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowShipConfirm(true)}
+                      disabled={shipping}
+                    >
+                      Enviar mesmo com pendência
+                    </button>
+                  )}
+
+                  {showShipConfirm && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>
+                          Justificativa (opcional)
+                        </span>
+                        <textarea
+                          value={shipNotes}
+                          onChange={(e) => setShipNotes(e.target.value)}
+                          placeholder="Ex: cliente autorizou envio parcial por telefone"
+                          maxLength={400}
+                          style={{ resize: 'vertical', minHeight: 60, padding: 8, border: '1px solid var(--border)', borderRadius: 8 }}
+                        />
+                      </label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button type="button" className="btn btn-secondary" onClick={() => setShowShipConfirm(false)} disabled={shipping}>
+                          Voltar
+                        </button>
+                        <button type="button" className="btn btn-primary" onClick={handleShipWithMissing} disabled={shipping}>
+                          {shipping ? 'Enviando…' : 'Confirmar envio com pendência'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               {(modalOrder.status === 'COMPLETED' || modalOrder.status === 'CANCELLED') && (
                 <div className="orders-modal-section">
                   <div className="orders-modal-grid">
@@ -343,5 +486,88 @@ export default function AdminOrders({ onNavigate, onOpenUpload }) {
         </div>
       )}
     </div>
+  );
+}
+
+// Lista os itens MISSING de um pedido OBSERVATION com botão para o ADMIN
+// marcar como encontrado (upload de foto obrigatório).
+function PendingItemsList({ items, resolvingItemId, onResolve }) {
+  const missing = (items ?? []).filter((it) => it.status === 'MISSING');
+  if (missing.length === 0) {
+    return <p>Nenhum item pendente neste pedido.</p>;
+  }
+  return (
+    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {missing.map((item) => (
+        <PendingItemCard
+          key={item.id}
+          item={item}
+          busy={resolvingItemId === item.id}
+          onResolve={(file) => onResolve(item.id, file)}
+        />
+      ))}
+    </ul>
+  );
+}
+
+function PendingItemCard({ item, busy, onResolve }) {
+  const referenceUrl = resolveAssetUrl(item.product?.imageUrl);
+  function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (file) onResolve(file);
+    // libera o input para permitir reescolher o mesmo arquivo se necessário
+    e.target.value = '';
+  }
+  return (
+    <li style={{
+      border: '1px solid var(--border)',
+      borderRadius: 10,
+      padding: 12,
+      display: 'flex',
+      gap: 12,
+      alignItems: 'flex-start',
+    }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: 8, overflow: 'hidden',
+        background: '#f4f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        {referenceUrl ? (
+          <img src={referenceUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <span style={{ fontSize: 11, color: '#6a6a78', textAlign: 'center' }}>Sem foto</span>
+        )}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: 0, fontWeight: 600 }}>{item.product?.name}</p>
+        <p style={{ margin: '2px 0 6px', color: '#6a6a78', fontSize: 12 }}>
+          SKU {item.product?.sku} • {item.quantity} {item.product?.unit}
+          {item.product?.manufacturerReference && ` • Ref. ${item.product.manufacturerReference}`}
+        </p>
+        <p style={{ margin: 0, fontSize: 13 }}>
+          <strong>Motivo:</strong> {item.notFoundReason || '—'}
+          {item.notFoundNotes && (
+            <span style={{ display: 'block', color: '#6a6a78', marginTop: 2 }}>
+              "{item.notFoundNotes}"
+            </span>
+          )}
+        </p>
+      </div>
+      <label
+        className="btn btn-primary btn-sm"
+        style={{ cursor: busy ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}
+        aria-disabled={busy}
+      >
+        {busy ? 'Enviando…' : 'Marcar encontrado'}
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFile}
+          disabled={busy}
+          style={{ display: 'none' }}
+        />
+      </label>
+    </li>
   );
 }

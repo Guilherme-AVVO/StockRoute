@@ -48,3 +48,29 @@ export async function publishOrder(id) {
   if (!res.ok) throw new Error(extractError(res, data, 'Erro ao publicar pedido'));
   return data;
 }
+
+// ADMIN registra que um item antes faltante foi encontrado/recebido.
+// photoFile é obrigatório no backend; o multipart é montado aqui.
+export async function resolveMissingItem(orderId, itemId, photoFile) {
+  const form = new FormData();
+  form.append('photoFile', photoFile);
+
+  const token = sessionStorage.getItem('stockroute_token');
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/orders/${orderId}/items/${itemId}/resolve-missing`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(extractError(res, data, 'Erro ao resolver item faltante'));
+  return data;
+}
+
+// ADMIN autoriza enviar o pedido OBSERVATION mesmo com itens MISSING.
+// Pedido vira COMPLETED; itens MISSING continuam como tal (histórico).
+export async function shipOrderWithMissing(orderId, { notes } = {}) {
+  const res = await api.post(`/orders/${orderId}/ship-with-missing`, { notes });
+  const data = await res.json();
+  if (!res.ok) throw new Error(extractError(res, data, 'Erro ao enviar pedido com pendência'));
+  return data;
+}

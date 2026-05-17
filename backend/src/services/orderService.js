@@ -129,6 +129,10 @@ function toItemDto(row) {
     pickedQuantity: row.picked_quantity,
     missingQuantity: row.missing_quantity,
     status:         row.status,
+    confirmationPhotoUrl: row.confirmation_photo_url ?? null,
+    collectedAt:    row.collected_at ?? null,
+    notFoundReason: row.not_found_reason ?? null,
+    notFoundNotes:  row.not_found_notes ?? null,
     createdAt:      row.created_at,
     updatedAt:      row.updated_at,
     product: {
@@ -137,6 +141,8 @@ function toItemDto(row) {
       name:     row.product_name,
       unit:     row.product_unit,
       imageUrl: row.product_image_url ?? null,
+      manufacturerName:      row.product_manufacturer_name ?? null,
+      manufacturerReference: row.product_manufacturer_reference ?? null,
     },
   };
 }

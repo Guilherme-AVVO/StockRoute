@@ -141,6 +141,38 @@ RETURNING id;
 -- depois insira order_items vinculando ao id retornado.
 ```
 
+## Resolução de pendências pelo ADMIN (OBSERVAÇÃO)
+
+Quando o picking termina como `OBSERVATION` (pelo menos 1 item `MISSING`),
+o ADMIN pode atuar diretamente na tela **Pedidos**:
+
+1. Selecionar o pedido e clicar em **"Resolver pendências"** —
+   abre o modal carregando `GET /orders/:id` com a lista de itens MISSING.
+2. Para cada item, **"Marcar encontrado"** abre o input de foto
+   (obrigatória). Frontend chama
+   `POST /orders/:orderId/items/:itemId/resolve-missing` (multipart
+   `photoFile`). O item vira `PICKED` no banco; se foi a última
+   pendência, o pedido vai automaticamente para `COMPLETED` e
+   `finished_at` é atualizado.
+3. **"Enviar mesmo com pendência"** abre um campo opcional de
+   justificativa e chama
+   `POST /orders/:orderId/ship-with-missing`. Pedido vira `COMPLETED`;
+   itens `MISSING` continuam como tais no histórico (auditoria registra
+   quem autorizou e a nota).
+
+Regras backend (`adminPickingService.js`):
+- só atua sobre pedidos em `OBSERVATION`;
+- só converte itens com status `MISSING` (não toca `PENDING` nem
+  `PICKED`);
+- foto é obrigatória em resolve-missing (mesmo storage / pasta /
+  limites do upload do estoquista).
+
+Eventos de auditoria adicionados:
+- `PICKING_ITEM_RESOLVED_BY_ADMIN` — uma resolução de item.
+- `ORDER_SHIPPED_WITH_MISSING` — autorização do envio com pendência.
+- Quando há auto-promoção `OBSERVATION → COMPLETED`, também grava
+  `ORDER_STATUS_CHANGED` com `autoPromoted: true`.
+
 ## Limitações atuais
 
 - Não há limpeza periódica de fotos órfãs em `uploads/picking/` (se o item
