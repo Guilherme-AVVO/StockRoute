@@ -1,0 +1,390 @@
+/* Tela 2 — Separação do pedido */
+
+.stk-header-picking {
+  padding-bottom: 14px;
+}
+
+/* ============================================================
+   Barra de progresso integrada ao header
+   ============================================================ */
+.stk-progress {
+  margin-top: 14px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.stk-progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.stk-progress-count {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.stk-progress-pct {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.stk-progress-bar {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  background: rgba(255,255,255,0.22);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.stk-progress-fill {
+  height: 100%;
+  transition: width .3s ease;
+}
+
+.stk-progress-fill-coletados      { background: #6fe2a9; }
+.stk-progress-fill-naoencontrados { background: #ffc36b; }
+
+.stk-progress-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.9);
+}
+
+.stk-progress-legend .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.stk-progress-legend .dot.ok   { background: #6fe2a9; }
+.stk-progress-legend .dot.warn { background: #ffc36b; }
+.stk-progress-legend .dot.idle { background: rgba(255,255,255,0.4); }
+
+/* ============================================================
+   Filtros segmentados
+   ============================================================ */
+.stk-picking-content { padding-top: 14px; }
+
+.stk-segmented {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--surface-variant);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.stk-segmented::-webkit-scrollbar { display: none; }
+
+.stk-seg-btn {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+  min-height: 38px;
+  transition: all .14s;
+}
+
+.stk-seg-btn:hover { background: var(--surface-low); color: var(--on-surface); }
+
+.stk-seg-btn.active {
+  background: var(--primary-fixed);
+  color: var(--primary);
+}
+
+.stk-seg-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--surface-low);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stk-seg-btn.active .stk-seg-count {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+/* ============================================================
+   Lista de itens
+   ============================================================ */
+.stk-items-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stk-item {
+  background: var(--surface);
+  border: 1px solid var(--surface-variant);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .18s, background .18s;
+}
+
+.stk-item-coletado        { border-color: var(--success-bg); background: linear-gradient(180deg, var(--success-bg) 0%, var(--surface) 60%); }
+.stk-item-nao-encontrado  { border-color: var(--observacao-bg); background: linear-gradient(180deg, var(--observacao-bg) 0%, var(--surface) 60%); }
+
+.stk-item-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.stk-item-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: var(--surface-low);
+  border: 1px solid var(--surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--outline-strong);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.stk-item-thumb img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+.stk-item-stamp {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border: 2px solid var(--surface);
+}
+
+.stk-item-stamp.ok   { background: var(--success); }
+.stk-item-stamp.warn { background: var(--observacao); }
+
+.stk-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stk-item-name {
+  margin: 0 0 4px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--on-surface);
+  line-height: 1.3;
+}
+
+.stk-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  margin-bottom: 8px;
+}
+
+.stk-item-meta b {
+  color: var(--on-surface);
+  font-weight: 600;
+}
+
+.stk-item-meta-fab {
+  flex-basis: 100%;
+  color: var(--outline-strong);
+  font-style: italic;
+}
+
+.stk-item-qty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--surface-low);
+  border-radius: 10px;
+  min-height: 32px;
+}
+
+.stk-item-qty-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--on-surface);
+}
+
+.stk-item-qty-unit {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+/* Ações por item — 3 botões em grid */
+.stk-item-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.stk-item-actions .stk-btn { width: 100%; min-height: 48px; }
+
+/* "Coletar" em destaque, ocupa coluna inteira no topo */
+.stk-item-actions .stk-btn-success {
+  grid-column: 1 / -1;
+  order: -1;
+}
+
+@media (min-width: 380px) {
+  .stk-item-actions {
+    grid-template-columns: 1fr 1.4fr 1fr;
+  }
+  .stk-item-actions .stk-btn-success {
+    grid-column: auto;
+    order: 0;
+  }
+}
+
+/* Status preenchido — coletado / não encontrado */
+.stk-item-status {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(255,255,255,0.6);
+  border-radius: 12px;
+  border: 1px solid var(--surface-variant);
+  align-items: center;
+}
+
+.stk-item-evidence {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--surface-variant);
+}
+
+.stk-item-status-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stk-item-status-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  font-family: var(--font-body);
+}
+
+.stk-item-status-title.ok   { color: var(--success); }
+.stk-item-status-title.warn { color: var(--observacao); }
+
+.stk-item-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  line-height: 1.4;
+}
+
+.stk-item-undo {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  padding: 6px 0;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   Barra inferior fixa "Finalizar pedido"
+   ============================================================ */
+.stk-finish-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--surface-variant);
+  padding: 10px 16px max(14px, env(safe-area-inset-bottom));
+  z-index: 25;
+  box-shadow: 0 -6px 16px rgba(20, 30, 80, 0.08);
+}
+
+/* Centraliza a barra dentro da largura do shell */
+@media (min-width: 481px) {
+  .stk-finish-bar {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    border-left: 1px solid var(--surface-variant);
+    border-right: 1px solid var(--surface-variant);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+.stk-finish-hint {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+.stk-finish-btn {
+  width: 100%;
+  min-height: 52px;
+  font-size: 16px;
+}

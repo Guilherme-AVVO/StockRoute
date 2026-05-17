@@ -1,0 +1,456 @@
+/* ============================================================
+   Modais do estoquista (compartilhado pelos 3 modais)
+   - bottom sheet no mobile
+   - centralizado em telas maiores
+   ============================================================ */
+.stk-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 24, 60, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 50;
+  animation: stkFadeIn .18s ease-out;
+}
+
+@keyframes stkFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.stk-modal {
+  background: var(--surface);
+  width: 100%;
+  max-width: 480px;
+  max-height: 92dvh;
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-modal);
+  animation: stkSlideUp .24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes stkSlideUp {
+  from { transform: translateY(20px); opacity: 0.4; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@media (min-height: 720px) and (min-width: 540px) {
+  .stk-modal-backdrop { align-items: center; }
+  .stk-modal {
+    border-radius: 22px;
+    max-height: 86dvh;
+  }
+}
+
+.stk-modal-grabber {
+  width: 36px;
+  height: 4px;
+  background: var(--surface-variant);
+  border-radius: 999px;
+  margin: 8px auto 0;
+}
+
+.stk-modal-header {
+  padding: 12px 18px 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.stk-modal-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--on-surface);
+  letter-spacing: -0.01em;
+  flex: 1;
+  line-height: 1.25;
+}
+
+.stk-modal-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  line-height: 1.4;
+}
+
+.stk-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: var(--surface-low);
+  color: var(--on-surface-variant);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stk-modal-close:hover {
+  background: var(--surface-variant);
+  color: var(--on-surface);
+}
+
+.stk-modal-body {
+  padding: 8px 18px 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.stk-modal-footer {
+  padding: 12px 18px 18px;
+  border-top: 1px solid var(--surface-variant);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (min-width: 380px) {
+  .stk-modal-footer.row { flex-direction: row; }
+  .stk-modal-footer.row > * { flex: 1; }
+}
+
+/* ============================================================
+   Bloco identificador de produto (usado nos modais)
+   ============================================================ */
+.stk-product-block {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface-low);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--surface-variant);
+}
+
+.stk-product-block-thumb {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--surface-variant);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--outline-strong);
+}
+
+.stk-product-block-thumb img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+.stk-product-block-info {
+  flex: 1; min-width: 0;
+}
+
+.stk-product-block-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--on-surface);
+  line-height: 1.3;
+  margin: 0 0 4px;
+}
+
+.stk-product-block-meta {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.stk-product-block-meta b { color: var(--on-surface); font-weight: 600; }
+
+/* ============================================================
+   Foto de referência (modal grande)
+   ============================================================ */
+.stk-ref-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+  background: var(--surface-low) repeating-linear-gradient(45deg, transparent 0 12px, rgba(42,77,215,0.04) 12px 13px);
+  border: 1px dashed var(--outline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--outline-strong);
+  text-align: center;
+  padding: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.stk-ref-photo img {
+  width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-md);
+}
+
+.stk-ref-photo-empty-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--on-surface-variant);
+}
+
+.stk-ref-photo-empty-sub {
+  font-size: 12px;
+  color: var(--outline-strong);
+  max-width: 240px;
+}
+
+/* Detalhes do produto na referência */
+.stk-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+
+.stk-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--surface-variant);
+  font-size: 13px;
+}
+
+.stk-detail-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+.stk-detail-label { color: var(--on-surface-variant); flex-shrink: 0; }
+
+.stk-detail-value {
+  color: var(--on-surface);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+.stk-detail-block {
+  background: var(--surface-low);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  line-height: 1.5;
+}
+
+.stk-detail-block-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--outline-strong);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+/* ============================================================
+   Banner informativo (foto de referência NÃO é foto de coleta)
+   ============================================================ */
+.stk-info-banner {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--primary-fixed);
+  color: var(--primary);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  line-height: 1.4;
+  align-items: flex-start;
+  margin-top: 14px;
+}
+
+.stk-info-banner svg { flex-shrink: 0; margin-top: 1px; }
+
+/* ============================================================
+   Captura de foto da coleta
+   ============================================================ */
+.stk-photo-capture {
+  border-radius: var(--radius-md);
+  border: 1.5px dashed var(--outline);
+  background: var(--surface-low);
+  padding: 18px;
+  margin-top: 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--on-surface-variant);
+  position: relative;
+  overflow: hidden;
+}
+
+.stk-photo-capture.has-photo {
+  padding: 0;
+  border-style: solid;
+  border-color: var(--success);
+  background: var(--surface);
+}
+
+.stk-photo-capture.has-photo img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  display: block;
+}
+
+.stk-photo-capture-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  width: 100%;
+  border-top: 1px solid var(--surface-variant);
+}
+
+.stk-photo-capture-actions .stk-btn {
+  flex: 1;
+}
+
+.stk-photo-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--primary-fixed);
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stk-photo-trigger {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.stk-photo-trigger input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.stk-photo-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--on-surface);
+}
+
+.stk-photo-sub {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  max-width: 260px;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   Form do "Não encontrado"
+   ============================================================ */
+.stk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.stk-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.stk-field-hint {
+  font-size: 11px;
+  color: var(--on-surface-variant);
+}
+
+.stk-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stk-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--surface-variant);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all .14s;
+  font-size: 14px;
+  color: var(--on-surface);
+  min-height: 48px;
+}
+
+.stk-radio:hover { border-color: var(--outline); }
+
+.stk-radio input { appearance: none; margin: 0; }
+
+.stk-radio-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--outline);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+}
+
+.stk-radio-dot::after {
+  content: '';
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--primary); transform: scale(0);
+  transition: transform .14s;
+}
+
+.stk-radio.checked {
+  border-color: var(--primary);
+  background: var(--primary-fixed);
+}
+
+.stk-radio.checked .stk-radio-dot { border-color: var(--primary); }
+.stk-radio.checked .stk-radio-dot::after { transform: scale(1); }
+
+.stk-textarea, .stk-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--surface-variant);
+  background: var(--surface);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--on-surface);
+  resize: vertical;
+  min-height: 48px;
+}
+
+.stk-textarea { min-height: 88px; }
+
+.stk-textarea:focus, .stk-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(42,77,215,0.16);
+}
+
+.stk-required-mark {
+  color: var(--error);
+  margin-left: 2px;
+}

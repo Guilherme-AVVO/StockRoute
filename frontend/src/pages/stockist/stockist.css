@@ -1,0 +1,274 @@
+/* ============================================================
+   Tokens da área ESTOQUISTA — mesma identidade visual da área ADMIN.
+   Reutilizamos as variáveis CSS já presentes em AdminDashboard.css,
+   mas redeclaramos aqui para que as telas do estoquista funcionem
+   isoladamente, caso o usuário acesse essa área sem passar pelo admin.
+   ============================================================ */
+.stockist-root {
+  --primary: #2a4dd7;
+  --primary-hover: #4868f1;
+  --primary-dark: #0034c0;
+  --primary-fixed: #dde1ff;
+  --primary-fixed-dim: #b9c3ff;
+  --bg: #fbf8ff;
+  --surface: #ffffff;
+  --surface-low: #f4f2fe;
+  --surface-variant: #e2e1ed;
+  --outline: #c4c5d7;
+  --outline-strong: #747686;
+  --on-surface: #1a1b23;
+  --on-surface-variant: #444654;
+  --secondary: #5a5e6d;
+  --error: #ba1a1a;
+  --error-bg: #ffdad6;
+  --success: #1f7a4d;
+  --success-bg: #c8edd9;
+  --warning: #8a5a00;
+  --warning-bg: #ffeac8;
+  --observacao: #c25100;
+  --observacao-bg: #ffe0c8;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  --shadow-sm: 0 1px 2px rgba(42,77,215,0.04);
+  --shadow-md: 0 4px 12px rgba(42,77,215,0.08), 0 1px 2px rgba(42,77,215,0.04);
+  --shadow-lg: 0 8px 24px rgba(42,77,215,0.10), 0 2px 4px rgba(42,77,215,0.04);
+  --shadow-modal: 0 24px 60px rgba(20, 24, 60, 0.35);
+
+  --font-display: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  background: var(--bg);
+  color: var(--on-surface);
+  font-family: var(--font-body);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Wrapper mobile-first: largura confortável no desktop, full no celular */
+.stockist-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background: var(--bg);
+  position: relative;
+  padding-bottom: 96px; /* respiro para barras fixas inferiores */
+}
+
+/* ============================================================
+   Header mobile (compartilhado entre telas do estoquista)
+   ============================================================ */
+.stk-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #fff;
+  padding: 14px 18px 18px;
+  border-bottom-left-radius: 22px;
+  border-bottom-right-radius: 22px;
+  box-shadow: 0 6px 20px rgba(42, 77, 215, 0.22);
+}
+
+.stk-header-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+}
+
+.stk-header-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.22);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.stk-header-back:hover { background: rgba(255,255,255,0.26); }
+
+.stk-header-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.92);
+}
+
+.stk-header-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.22);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.stk-header h1 {
+  margin: 10px 0 2px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.stk-header-subtitle {
+  margin: 0;
+  color: rgba(255,255,255,0.82);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   Botões (alinhados ao design system admin, com mínimo 48px no estoquista)
+   ============================================================ */
+.stk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  min-height: 48px;
+  width: 100%;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all .18s;
+  text-decoration: none;
+  line-height: 1.1;
+}
+
+.stk-btn-primary {
+  background: linear-gradient(180deg, var(--primary-hover) 0%, var(--primary) 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(42,77,215,0.25);
+}
+
+.stk-btn-primary:hover:not(:disabled) { filter: brightness(0.97); }
+
+.stk-btn-secondary {
+  background: var(--surface);
+  color: var(--primary);
+  border-color: var(--outline);
+}
+
+.stk-btn-secondary:hover { background: var(--surface-low); border-color: var(--primary); }
+
+.stk-btn-ghost {
+  background: transparent;
+  color: var(--on-surface-variant);
+}
+
+.stk-btn-danger {
+  background: var(--surface);
+  color: var(--error);
+  border-color: var(--error-bg);
+}
+
+.stk-btn-success {
+  background: var(--surface);
+  color: var(--success);
+  border-color: var(--success-bg);
+}
+
+.stk-btn-sm {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 13px;
+  width: auto;
+}
+
+.stk-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ============================================================
+   Cards genéricos
+   ============================================================ */
+.stk-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-variant);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Badges — herdam o estilo do StatusBadge.css do admin */
+.stk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.stk-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.stk-badge.aguardando   { color: var(--warning);    background: var(--warning-bg); }
+.stk-badge.em-separacao { color: var(--primary);    background: var(--primary-fixed); }
+.stk-badge.concluido    { color: var(--success);    background: var(--success-bg); }
+.stk-badge.observacao   { color: var(--observacao); background: var(--observacao-bg); }
+.stk-badge.cancelado    { color: var(--error);      background: var(--error-bg); }
+.stk-badge.pendente     { color: #6a6a78;           background: #ececf5; }
+.stk-badge.coletado     { color: var(--success);    background: var(--success-bg); }
+.stk-badge.nao-encontrado { color: var(--observacao); background: var(--observacao-bg); }
+
+/* Indicadores de entrega (entrega hoje / próxima / atrasado) */
+.stk-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.stk-pill svg { width: 12px; height: 12px; }
+
+.stk-pill.hoje      { color: var(--primary);    background: var(--primary-fixed); }
+.stk-pill.proxima   { color: #6a6a78;           background: #ececf5; }
+.stk-pill.atrasado  { color: var(--error);      background: var(--error-bg); }
+
+/* Foco visível para acessibilidade */
+.stockist-root button:focus-visible,
+.stockist-root input:focus-visible,
+.stockist-root textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

@@ -1,10 +1,10 @@
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import Login from './pages/Login.jsx';
-import Dashboard from './pages/Dashboard.jsx';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
+import StockistApp from './pages/stockist/StockistApp.jsx';
 
 // Roteia para a tela correta baseado em autenticação e role do usuário.
-// ADMIN → AdminDashboard | outros → Dashboard | não autenticado → Login
+// ADMIN → AdminDashboard | ESTOQUISTA (e demais) → StockistApp | sem login → Login
 function AppRouter() {
   const { isAuthenticated, loading, user } = useAuth();
 
@@ -26,7 +26,7 @@ function AppRouter() {
 
   if (!isAuthenticated) return <Login />;
 
-  return user?.role === 'ADMIN' ? <AdminDashboard /> : <Dashboard />;
+  return user?.role === 'ADMIN' ? <AdminDashboard /> : <StockistApp />;
 }
 
 export default function App() {
