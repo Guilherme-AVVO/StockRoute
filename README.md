@@ -54,6 +54,45 @@ O projeto segue uma arquitetura modular baseada em:
 - Estrutura mobile-first
 - API REST
 
+## Como executar localmente
+
+### Pré-requisitos
+
+- Docker e Docker Compose
+- Node.js 18+
+
+### Passos
+
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/Guilherme-AVVO/StockRoute.git
+   cd StockRoute
+   ```
+
+2. Suba o banco de dados com Docker:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. Configure e inicie o backend:
+   ```bash
+   cd backend
+   npm install
+   cp .env.example .env
+   # Edite o arquivo .env com suas configurações
+   npm run dev
+   ```
+
+4. Em outro terminal, configure e inicie o frontend:
+   ```bash
+   cd frontend
+   npm install
+   cp .env.example .env
+   npm run dev
+   ```
+
+O backend estará disponível em `http://localhost:3000` e o frontend em `http://localhost:5173`.
+
 ## Status
 
 🚧 Em desenvolvimento
