@@ -8,11 +8,11 @@ function ChevronIcon() {
   );
 }
 
-// stats: { ordersPending, ordersInProgress, ordersCompleted, ordersCancelled, totalProducts, activeIgnoredRules }
+// Pendências operacionais que exigem acompanhamento do ADMIN.
 export default function PendingIssuesCard({ stats }) {
   const pending    = stats?.ordersPending    ?? 0;
   const inProgress = stats?.ordersInProgress ?? 0;
-  const ignored    = stats?.activeIgnoredRules ?? 0;
+  const observation = stats?.ordersObservation ?? 0;
 
   const issues = [
     {
@@ -38,12 +38,12 @@ export default function PendingIssuesCard({ stats }) {
     },
     {
       type: 'muted',
-      count: ignored,
-      text: 'regras de ignorado ativas',
+      count: observation,
+      text: observation === 1 ? 'pedido em observação' : 'pedidos em observação',
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M3 3l18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M9 3h12v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M12 8v5M12 17h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
         </svg>
       ),
     },

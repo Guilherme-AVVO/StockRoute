@@ -7,7 +7,9 @@ import './StatusBadge.css';
 // quanto as strings legadas da UI (aguardando, em-separacao, etc.).
 const STATUS_MAP = {
   PENDING:        { label: 'Aguardando revisão', cls: 'aguardando' },
-  IN_PROGRESS:    { label: 'Em separação',       cls: 'em-separacao' },
+  IN_PROGRESS:    { label: 'Aguardando picking',    cls: 'aguardando' },
+  PICKING:        { label: 'Em separação',       cls: 'em-separacao' },
+  OBSERVATION:    { label: 'Em observação',      cls: 'observacao' },
   COMPLETED:      { label: 'Concluído',          cls: 'concluido' },
   CANCELLED:      { label: 'Cancelado',          cls: 'cancelado' },
   rascunho:       { label: 'Rascunho',           cls: 'rascunho' },

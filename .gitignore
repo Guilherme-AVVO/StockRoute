@@ -93,3 +93,6 @@ Thumbs.db
 .claude/
 CLAUDE.md
 AGENTS.md
+
+# Saida de dogfooding local (screenshots, videos, auth state)
+dogfood-output/

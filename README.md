@@ -93,6 +93,26 @@ O projeto segue uma arquitetura modular baseada em:
 
 O backend estará disponível em `http://localhost:3000` e o frontend em `http://localhost:5173`.
 
+## Sandbox de demonstração
+
+Com o PostgreSQL ativo e o `backend/.env` configurado, restaure a massa completa:
+
+```bash
+cd backend
+npm run demo:reset
+```
+
+O comando pode ser repetido sempre que quiser voltar ao estado inicial.
+
+| Perfil | E-mail | Senha |
+| --- | --- | --- |
+| ADMIN | `admin@stockroute.com` | `admin123` |
+| ESTOQUISTA | `estoquista@stockroute.com` | `estoque123` |
+
+Na tela **Upload DAV**, use **Baixar DAV de demonstração** para obter um PDF que produz um item vinculado, um ignorado por regra e um não vinculado.
+
+A especificação e os critérios de aceite estão em [`docs/SANDBOX_SPEC.md`](docs/SANDBOX_SPEC.md).
+
 ## Status
 
 🚧 Em desenvolvimento

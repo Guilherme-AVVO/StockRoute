@@ -19,7 +19,6 @@ export default function ProcessFlow() {
           <h2>Fluxo do pedido</h2>
           <p>Etapas que cada DAV percorre — destaque para onde o ADMIN atua</p>
         </div>
-        <button className="btn btn-ghost btn-sm" type="button">Como funciona?</button>
       </div>
       <div className="pipeline-steps">
         {STEPS.map((step) => (

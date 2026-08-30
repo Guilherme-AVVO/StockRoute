@@ -11,9 +11,24 @@ const ERROR_MESSAGES = {
   unexpected: 'Erro inesperado ao tentar entrar. Tente novamente.',
 };
 
+const DEMO_ACCOUNTS = [
+  {
+    role: 'Administrador',
+    description: 'Revise DAVs, publique pedidos e acompanhe a operação.',
+    email: 'admin@stockroute.com',
+    password: 'admin123',
+  },
+  {
+    role: 'Estoquista',
+    description: 'Separe pedidos, registre fotos e informe faltas.',
+    email: 'estoquista@stockroute.com',
+    password: 'estoque123',
+  },
+];
+
 function Logo({ size = 36 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" aria-label="Moto Madeiras">
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" aria-label="StockRoute">
       <path d="M6 14.5L18 6l12 8.5V30a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V14.5z" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" fill="none" />
       <path d="M11 32V22h14v10" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none" />
       <circle cx="14.5" cy="26" r="1.1" fill="currentColor" />
@@ -151,9 +166,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Estados auxiliares mantêm os comportamentos visuais do HTML original.
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(true);
   const [fieldErrors, setFieldErrors] = useState({});
 
   function validateForm() {
@@ -169,26 +182,32 @@ export default function Login() {
     return Object.keys(nextErrors).length === 0;
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function authenticate(credentials) {
     setError('');
-
-    if (!validateForm()) return;
-
     setLoading(true);
 
     try {
-      // Envia email/password ao backend usando o serviço baseado em fetch nativo.
-      await login(email.trim(), password);
-      // O AuthContext salva token/usuário e o App troca para o dashboard autenticado.
+      await login(credentials.email.trim(), credentials.password);
     } catch (err) {
-      // Tratamento de erro sem expor senha ou token em tela/console.
       const message = ERROR_MESSAGES[err.message] ?? ERROR_MESSAGES.unexpected;
       setError(message);
       setPassword('');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (!validateForm()) return;
+    await authenticate({ email, password });
+  }
+
+  async function handleDemoLogin(account) {
+    setEmail(account.email);
+    setPassword(account.password);
+    setFieldErrors({});
+    await authenticate(account);
   }
 
   function handleEmailChange(value) {
@@ -218,14 +237,36 @@ export default function Login() {
               <span className="login-logo">
                 <Logo size={32} />
               </span>
-              <span className="login-brand-name">Moto Madeiras</span>
+              <span className="login-brand-name">StockRoute</span>
             </header>
 
             <section className="login-card" aria-labelledby="login-title">
               <div className="login-heading">
                 <h1 id="login-title">Bem-vindo de volta</h1>
-                <p>Acesse o painel operacional</p>
+                <p>Explore o fluxo completo em um ambiente de demonstração.</p>
               </div>
+
+              <section className="login-demo" aria-labelledby="demo-title">
+                <div>
+                  <span className="login-demo-badge">Sandbox</span>
+                  <h2 id="demo-title">Escolha um perfil para entrar</h2>
+                </div>
+                <div className="login-demo-accounts">
+                  {DEMO_ACCOUNTS.map((account) => (
+                    <button
+                      key={account.role}
+                      type="button"
+                      onClick={() => handleDemoLogin(account)}
+                      disabled={loading}
+                    >
+                      <strong>{loading ? 'Entrando…' : `Entrar como ${account.role}`}</strong>
+                      <span>{account.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <div className="login-divider"><span>ou use suas credenciais</span></div>
 
               {error && (
                 <div className="login-error-banner" role="alert">
@@ -271,30 +312,6 @@ export default function Login() {
                   }
                 />
 
-                <div className="login-options">
-                  <label className="login-remember" htmlFor="remember">
-                    <span className={`login-checkbox${remember ? ' is-checked' : ''}`} aria-hidden="true">
-                      {remember && (
-                        <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                          <path d="M2 6.5 5 9.5 10 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </span>
-                    <input
-                      id="remember"
-                      type="checkbox"
-                      checked={remember}
-                      onChange={(event) => setRemember(event.target.checked)}
-                      disabled={loading}
-                    />
-                    Lembrar-me
-                  </label>
-
-                  <a href="#" onClick={(event) => event.preventDefault()}>
-                    Esqueci minha senha
-                  </a>
-                </div>
-
                 <button className="login-submit" type="submit" disabled={loading}>
                   {loading && <SpinnerIcon />}
                   {loading ? 'Autenticando...' : 'Entrar'}
@@ -302,7 +319,7 @@ export default function Login() {
               </form>
             </section>
 
-            <footer className="login-footer">v3.2.1 · Painel Operacional</footer>
+            <footer className="login-footer">StockRoute · Sandbox operacional</footer>
           </div>
         </main>
 

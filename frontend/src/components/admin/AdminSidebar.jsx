@@ -32,7 +32,6 @@ export default function AdminSidebar({ isOpen, onClose, activeSection, onNavigat
           <BrandIcon />
           <span>
             <div className="brand-name">StockRoute</div>
-            <div className="brand-sub">Moto Madeiras</div>
           </span>
         </div>
 

@@ -57,7 +57,7 @@ Campos retornados em camelCase: `id`, `name`, `email`, `role`, `isActive`, `last
 ```json
 {
   "name": "João Estoquista",
-  "email": "joao@motomadeiras.com",
+  "email": "joao@stockroute.com",
   "password": "senhaInicial123",
   "role": "ESTOQUISTA",
   "isActive": true
@@ -71,7 +71,7 @@ Campos retornados em camelCase: `id`, `name`, `email`, `role`, `isActive`, `last
 ```json
 {
   "name": "João Estoquista",
-  "email": "joao@motomadeiras.com",
+  "email": "joao@stockroute.com",
   "role": "ADMIN",
   "isActive": true
 }
@@ -97,7 +97,7 @@ Resposta:
   "user": {
     "id": "...",
     "name": "João Estoquista",
-    "email": "joao@motomadeiras.com",
+    "email": "joao@stockroute.com",
     "role": "ESTOQUISTA",
     "isActive": false,
     "lastAccessAt": null,

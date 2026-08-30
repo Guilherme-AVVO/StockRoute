@@ -128,7 +128,7 @@ export async function parseDav(fileBuffer) {
   const { text } = await parser.getText();
   await parser.destroy();
 
-  const davMatch = text.match(/Nº DAV:\s*(\d+)/);
+  const davMatch = text.match(/N(?:º|o) DAV:\s*(\d+)/i);
   if (!davMatch) {
     throw { status: 422, message: 'Número do DAV não encontrado no PDF' };
   }

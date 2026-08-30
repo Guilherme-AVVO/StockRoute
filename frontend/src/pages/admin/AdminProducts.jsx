@@ -7,6 +7,7 @@ import {
   updateProduct,
   deleteProduct,
 } from '../../services/productService.js';
+import { resolveAssetUrl } from '../../services/stockistService.js';
 import './AdminProducts.css';
 
 // Unidades disponíveis conforme constraint do banco.
@@ -263,7 +264,7 @@ export default function AdminProducts() {
                     {product.imageUrl ? (
                       <img
                         className="products-img"
-                        src={product.imageUrl}
+                        src={resolveAssetUrl(product.imageUrl)}
                         alt={product.name}
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />

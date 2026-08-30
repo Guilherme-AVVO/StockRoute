@@ -57,8 +57,10 @@ function urgencyLabelFor(deliveryDate) {
   if (!deliveryDate) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const d = new Date(deliveryDate);
-  d.setHours(0, 0, 0, 0);
+  const dateOnly = deliveryDate instanceof Date
+    ? deliveryDate.toISOString().slice(0, 10)
+    : String(deliveryDate).slice(0, 10);
+  const d = new Date(`${dateOnly}T00:00:00`);
   const diffDays = Math.round((d - today) / (1000 * 60 * 60 * 24));
   if (diffDays < 0)  return `Atrasado ${Math.abs(diffDays)}d`;
   if (diffDays === 0) return 'Entrega hoje';
@@ -72,7 +74,7 @@ function toAvailableOrderDto(row, { userId } = {}) {
     id:            row.id,
     davNumber:     row.order_number,
     clientName:    row.customer_name,
-    deliveryDate:  row.delivery_date,
+    deliveryDate:  row.delivery_date?.toISOString?.().slice(0, 10) ?? row.delivery_date,
     status:        STOCKIST_STATUS_LABELS[row.status] ?? row.status,
     rawStatus:     row.status,
     itemsCount:    row.items_count ?? 0,
@@ -112,7 +114,7 @@ function toOrderDto(row) {
     id:           row.id,
     davNumber:    row.order_number,
     clientName:   row.customer_name,
-    deliveryDate: row.delivery_date,
+    deliveryDate: row.delivery_date?.toISOString?.().slice(0, 10) ?? row.delivery_date,
     status:       STOCKIST_STATUS_LABELS[row.status] ?? row.status,
     rawStatus:    row.status,
     assignedTo:   row.assigned_to ?? null,

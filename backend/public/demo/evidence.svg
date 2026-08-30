@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Evidência de picking</title>
+  <desc id="desc">Caixa separada e identificada no ambiente de demonstração.</desc>
+  <rect width="640" height="420" rx="32" fill="#eef0ff"/>
+  <path d="m150 170 170-82 170 82-170 86z" fill="#dde1ff" stroke="#2a4dd7" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M150 170v140l170 72V256zm340 0v140l-170 72V256z" fill="#b9c3ff" stroke="#2a4dd7" stroke-width="12" stroke-linejoin="round"/>
+  <path d="m256 119 170 84" stroke="#2a4dd7" stroke-width="12"/>
+  <circle cx="500" cy="92" r="56" fill="#1f7a55"/>
+  <path d="m472 92 18 18 38-42" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

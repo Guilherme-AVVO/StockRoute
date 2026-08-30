@@ -33,9 +33,9 @@ Itens como `FITA INST. BCO TX 0.7 X 22MM - TB`, `INSTALACAO PUX PERFIL` e `SERVI
 Exemplo:
 
 - Tipo: Fabricante igual
-- Valor: `MOTOMADEIRAS`
+- Valor: `STOCKROUTE`
 
-Somente itens cujo fabricante normalizado seja exatamente `MOTOMADEIRAS` serão ocultados.
+Somente itens cujo fabricante normalizado seja exatamente `STOCKROUTE` serão ocultados.
 
 ## Apagar regra
 
@@ -63,6 +63,6 @@ Todos exigem autenticação e perfil `ADMIN`.
 1. Criar regra `NAME_CONTAINS` com valor `INST.`.
 2. Importar ou simular item `FITA INST. BCO TX 0.7 X 22MM - TB`.
 3. Confirmar que o item vai para ocultos e não aparece em revisão normal/não vinculados.
-4. Criar regra `MANUFACTURER_NAME` com valor `MOTOMADEIRAS`.
-5. Confirmar que item com fabricante `MOTOMADEIRAS` é ocultado.
+4. Criar regra `MANUFACTURER_NAME` com valor `STOCKROUTE`.
+5. Confirmar que item com fabricante `STOCKROUTE` é ocultado.
 6. Apagar uma regra e listar novamente para confirmar que ela não volta como ativa.

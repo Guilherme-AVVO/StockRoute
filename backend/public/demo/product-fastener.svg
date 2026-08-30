@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Parafusos de demonstração</title>
+  <desc id="desc">Ilustração azul de parafusos organizados para identificação no picking.</desc>
+  <rect width="640" height="420" rx="32" fill="#eef0ff"/>
+  <g fill="none" stroke="#2a4dd7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m185 115 196 196" stroke-width="34"/>
+    <path d="m164 95 42 42M150 110l42 42" stroke-width="14"/>
+    <path d="m325 140 116 116" stroke-width="34" opacity=".45"/>
+    <path d="m310 122 35 35M298 134l35 35" stroke-width="12" opacity=".65"/>
+    <path d="m225 185 21-21m12 54 21-21m12 54 21-21m12 54 21-21" stroke="#fff" stroke-width="7"/>
+  </g>
+</svg>

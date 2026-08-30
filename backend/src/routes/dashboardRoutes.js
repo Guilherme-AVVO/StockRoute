@@ -12,7 +12,9 @@ router.get('/stats', async (_req, res, next) => {
     const stats = await getDashboardStats();
     res.json({
       ordersPending:      stats.orders_pending,
+      ordersPublished:    stats.orders_published,
       ordersInProgress:   stats.orders_in_progress,
+      ordersObservation:  stats.orders_observation,
       ordersCompleted:    stats.orders_completed,
       ordersCancelled:    stats.orders_cancelled,
       totalProducts:      stats.total_products,

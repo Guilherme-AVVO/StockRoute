@@ -15,7 +15,8 @@ export const NOT_FOUND_REASONS = [
 export function classifyDelivery(deliveryDate) {
   if (!deliveryDate) return { kind: 'proxima', label: 'Sem data', days: null };
   const t = new Date(); t.setHours(0, 0, 0, 0);
-  const d = new Date(deliveryDate);
+  const dateOnly = String(deliveryDate).slice(0, 10);
+  const d = new Date(`${dateOnly}T00:00:00`);
   d.setHours(0, 0, 0, 0);
   const diff = Math.round((d - t) / (1000 * 60 * 60 * 24));
   if (diff < 0)   return { kind: 'atrasado', label: `Atrasado ${Math.abs(diff)}d`, days: diff };

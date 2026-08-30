@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Painel MDF de demonstração</title>
+  <desc id="desc">Ilustração de chapas empilhadas para referência no picking.</desc>
+  <rect width="640" height="420" rx="32" fill="#edf5f3"/>
+  <g stroke="#235c51" stroke-width="12" stroke-linejoin="round">
+    <path d="m122 268 318-116 82 42-318 116z" fill="#b8ddd4"/>
+    <path d="m122 224 318-116 82 42-318 116z" fill="#d9eee9"/>
+    <path d="m122 180 318-116 82 42-318 116z" fill="#fff"/>
+  </g>
+</svg>

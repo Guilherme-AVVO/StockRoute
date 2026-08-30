@@ -50,7 +50,7 @@ Heurística do parser:
 
 A heurística não é perfeita para 100% dos casos (endereços compostos, fabricantes
 com formatação atípica), mas captura corretamente os casos mais comuns (`MULTIMARCA`,
-`MOTOMADEIRAS`, `LEVIMAR`, `RENNA`, `USAF`, `HAFELE`, etc.). O ADMIN pode editar
+`STOCKROUTE`, `LEVIMAR`, `RENNA`, `USAF`, `HAFELE`, etc.). O ADMIN pode editar
 manualmente antes de salvar o produto.
 
 ## Como o matching automático funciona

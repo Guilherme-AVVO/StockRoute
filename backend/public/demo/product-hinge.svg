@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Dobradiça de demonstração</title>
+  <desc id="desc">Ilustração de uma dobradiça para referência visual do estoquista.</desc>
+  <rect width="640" height="420" rx="32" fill="#f4f2fe"/>
+  <g fill="#dde1ff" stroke="#2a4dd7" stroke-width="14">
+    <rect x="112" y="100" width="180" height="220" rx="28"/>
+    <rect x="348" y="100" width="180" height="220" rx="28"/>
+    <rect x="290" y="78" width="60" height="264" rx="24" fill="#b9c3ff"/>
+    <circle cx="180" cy="165" r="18" fill="#fff"/>
+    <circle cx="180" cy="255" r="18" fill="#fff"/>
+    <circle cx="460" cy="165" r="18" fill="#fff"/>
+    <circle cx="460" cy="255" r="18" fill="#fff"/>
+  </g>
+</svg>

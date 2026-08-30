@@ -9,7 +9,8 @@
     "prestart": "node db/migrate.js",
     "start": "node src/server.js",
     "migrate": "node db/migrate.js",
-    "migrate:seed": "node db/migrate.js --seed"
+    "migrate:seed": "node db/migrate.js --seed",
+    "demo:reset": "node db/migrate.js --demo-reset"
   },
   "keywords": [],
   "author": "",

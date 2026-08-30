@@ -46,9 +46,10 @@ const STAT_ICONS = {
       <path d="M9 3h12v12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   ),
-  cancelled: (
+  observation: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M12 8v5M12 17h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   ),
 };
@@ -164,7 +165,7 @@ export default function AdminDashboard() {
               <StatCard icon={STAT_ICONS.products}   value={stats?.totalProducts    ?? '—'} label="Produtos cadastrados"   description="No catálogo ativo" />
               <StatCard icon={STAT_ICONS.ignored}    value={stats?.activeIgnoredRules ?? '—'} label="Ignorados automaticamente" description="Regras de ignorar ativas"
                 iconStyle={{ background: 'var(--surface-low)', color: 'var(--outline-strong)' }} />
-              <StatCard icon={STAT_ICONS.cancelled}  value={stats?.ordersCancelled  ?? '—'} label="Cancelados"             description="Pedidos removidos do fluxo"
+              <StatCard icon={STAT_ICONS.observation} value={stats?.ordersObservation ?? '—'} label="Em observação" description="Aguardando decisão do ADMIN"
                 iconStyle={{ background: '#ececf5', color: '#6a6a78' }} />
             </section>
 

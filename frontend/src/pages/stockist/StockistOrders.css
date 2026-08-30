@@ -68,20 +68,6 @@
 
 .stk-order-card:hover { box-shadow: var(--shadow-md); }
 
-/* Borda colorida à esquerda conforme urgência da entrega */
-.stk-order-card::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 14px; bottom: 14px;
-  width: 4px;
-  border-radius: 2px;
-  background: var(--surface-variant);
-}
-
-.stk-order-card.stk-order-atrasado::before { background: var(--error); }
-.stk-order-card.stk-order-hoje::before     { background: var(--primary); }
-.stk-order-card.stk-order-proxima::before  { background: var(--outline); }
-
 .stk-order-head {
   display: flex;
   align-items: flex-start;

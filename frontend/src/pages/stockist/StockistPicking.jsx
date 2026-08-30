@@ -177,13 +177,13 @@ export default function StockistPicking({ orderId, onBack, onFinish }) {
 
         <h1 style={{ fontSize: 20, marginTop: 8 }}>{order.clientName}</h1>
         <p className="stk-header-subtitle">
-          Entrega {formatDate(order.deliveryDate)} • {stats.total} itens
+          Entrega {formatDate(order.deliveryDate)} • {stats.total} {stats.total === 1 ? 'item' : 'itens'}
         </p>
 
         <div className="stk-progress">
           <div className="stk-progress-top">
             <span className="stk-progress-count">
-              {stats.processed} <span style={{ opacity: 0.7 }}>de {stats.total} itens processados</span>
+              {stats.processed} <span style={{ opacity: 0.7 }}>de {stats.total} {stats.total === 1 ? 'item processado' : 'itens processados'}</span>
             </span>
             <span className="stk-progress-pct">{stats.pct}%</span>
           </div>
@@ -192,8 +192,8 @@ export default function StockistPicking({ orderId, onBack, onFinish }) {
             <div className="stk-progress-fill stk-progress-fill-naoencontrados" style={{ width: stats.total ? `${(stats.naoEncontrados / stats.total) * 100}%` : 0 }} />
           </div>
           <div className="stk-progress-legend">
-            <span><i className="dot ok" /> {stats.coletados} coletados</span>
-            <span><i className="dot warn" /> {stats.naoEncontrados} não encontrados</span>
+            <span><i className="dot ok" /> {stats.coletados} {stats.coletados === 1 ? 'coletado' : 'coletados'}</span>
+            <span><i className="dot warn" /> {stats.naoEncontrados} {stats.naoEncontrados === 1 ? 'não encontrado' : 'não encontrados'}</span>
             <span><i className="dot idle" /> {stats.pendentes} pendentes</span>
           </div>
         </div>

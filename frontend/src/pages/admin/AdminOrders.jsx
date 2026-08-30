@@ -64,6 +64,12 @@ const STAT_ICONS = {
       <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   ),
+  observation: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M12 8v5M12 17h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  ),
   completed: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       <path d="m5 12 5 5L20 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -238,7 +244,8 @@ export default function AdminOrders({ onNavigate, onOpenUpload }) {
 
       <section className="orders-stats-grid">
         <StatCard icon={STAT_ICONS.pending}    value={stats?.ordersPending    ?? '—'} label="Aguardando revisão"   description="Não publicados ainda" />
-        <StatCard icon={STAT_ICONS.inProgress} value={stats?.ordersInProgress ?? '—'} label="Em separação"         description="Em andamento" />
+        <StatCard icon={STAT_ICONS.inProgress} value={stats?.ordersInProgress ?? '—'} label="Em separação"         description="Com estoquista" />
+        <StatCard icon={STAT_ICONS.observation} value={stats?.ordersObservation ?? '—'} label="Em observação" description="Aguardando decisão" />
         <StatCard icon={STAT_ICONS.completed}  value={stats?.ordersCompleted  ?? '—'} label="Concluídos"           description="Pedidos finalizados"
           iconStyle={{ background: 'var(--success-bg)', color: 'var(--success)' }} />
         <StatCard icon={STAT_ICONS.cancelled}  value={stats?.ordersCancelled  ?? '—'} label="Cancelados"           description="Pedidos cancelados"
@@ -307,7 +314,7 @@ export default function AdminOrders({ onNavigate, onOpenUpload }) {
                         <td><span className="client-name">{order.customerName}</span></td>
                         <td><span className="orders-date">{formatDate(order.createdAt)}</span></td>
                         <td><OrderStatusBadge status={order.status} /></td>
-                        <td><span className="counts"><span className="num">{order.totalItems ?? 0}</span> itens</span></td>
+                        <td><span className="counts"><span className="num">{order.totalItems ?? 0}</span> {(order.totalItems ?? 0) === 1 ? 'item' : 'itens'}</span></td>
                         <td><ProgressBar value={getProgress(order)} /></td>
                         <td>
                           <button className="orders-action" type="button"

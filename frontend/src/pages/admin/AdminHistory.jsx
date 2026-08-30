@@ -10,6 +10,7 @@ import {
   labelForEventType,
   deriveAction,
 } from '../../services/auditService.js';
+import { resolveAssetUrl } from '../../services/stockistService.js';
 import './AdminHistory.css';
 
 // Filtros derivados dos tipos de evento canônicos do backend.
@@ -316,7 +317,7 @@ export default function AdminHistory() {
               <span>Evidência</span>
               <strong>
                 {modalEvent.evidenceUrl ? (
-                  <a href={modalEvent.evidenceUrl} target="_blank" rel="noreferrer">{evidenceLabel(modalEvent)}</a>
+                  <a href={resolveAssetUrl(modalEvent.evidenceUrl)} target="_blank" rel="noreferrer">{evidenceLabel(modalEvent)}</a>
                 ) : (
                   evidenceLabel(modalEvent)
                 )}

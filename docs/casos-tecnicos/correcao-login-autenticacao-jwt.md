@@ -44,7 +44,7 @@ A causa raiz foi um hash bcrypt incompatível com a senha documentada para o usu
 
 O banco real tinha o usuário `admin@stockroute.com`, mas o hash salvo para esse usuário não correspondia à senha `admin123`. O hash tinha formato bcrypt válido, porém `bcrypt.compare('admin123', hash)` retornava `false`.
 
-Também havia divergência documental: a especificação original mencionava `admin@motomadeiras.com.br` / `admin@123`, enquanto o projeto atual e o banco usavam `admin@stockroute.com` / `admin123`.
+Também havia divergência documental: a especificação original mencionava `admin@stockroute.com.br` / `admin@123`, enquanto o projeto atual e o banco usavam `admin@stockroute.com` / `admin123`.
 
 ## 6. Correção aplicada
 

@@ -1,4 +1,4 @@
-// Topbar da dashboard ADMIN: busca, role pill, usuário e logout.
+// Topbar da dashboard ADMIN: contexto do sandbox, usuário e logout.
 // Recebe onMenuToggle para acionar o menu mobile.
 import { useAuth } from '../../context/AuthContext.jsx';
 import './AdminHeader.css';
@@ -31,14 +31,7 @@ export default function AdminHeader({ onMenuToggle }) {
         </svg>
       </button>
 
-      {/* Campo de busca */}
-      <div className="search">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
-          <path d="m20 20-3-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-        <input type="search" placeholder="Buscar DAV, cliente ou produto..." />
-      </div>
+      <span className="demo-label"><i /> Sandbox de demonstração</span>
 
       <div className="topbar-spacer" />
 

@@ -4,7 +4,9 @@ export async function getDashboardStats() {
   const rows = await sql`
     SELECT
       (SELECT COUNT(*)::int FROM orders WHERE status = 'PENDING')      AS orders_pending,
-      (SELECT COUNT(*)::int FROM orders WHERE status = 'IN_PROGRESS')  AS orders_in_progress,
+      (SELECT COUNT(*)::int FROM orders WHERE status = 'IN_PROGRESS')  AS orders_published,
+      (SELECT COUNT(*)::int FROM orders WHERE status = 'PICKING')      AS orders_in_progress,
+      (SELECT COUNT(*)::int FROM orders WHERE status = 'OBSERVATION')  AS orders_observation,
       (SELECT COUNT(*)::int FROM orders WHERE status = 'COMPLETED')    AS orders_completed,
       (SELECT COUNT(*)::int FROM orders WHERE status = 'CANCELLED')    AS orders_cancelled,
       (SELECT COUNT(*)::int FROM products)                             AS total_products,

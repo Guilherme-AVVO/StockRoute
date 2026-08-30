@@ -33,15 +33,6 @@
   letter-spacing: -0.01em;
 }
 
-.brand-sub {
-  font-family: var(--font-body);
-  font-size: 11px;
-  color: var(--on-surface-variant);
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
 .nav-section {
   font-size: 10px;
   font-weight: 700;

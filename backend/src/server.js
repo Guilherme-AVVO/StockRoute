@@ -16,6 +16,7 @@ import auditRoutes            from './routes/auditRoutes.js';
 import userRoutes             from './routes/userRoutes.js';
 import pickingRoutes          from './routes/pickingRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
+import { createDemoDavPdf } from './utils/demoDavPdf.js';
 
 const app = express();
 
@@ -84,7 +85,7 @@ app.use(cors({
 
     const normalizedOrigin = normalizeOrigin(origin);
     const isLocalViteOrigin = process.env.NODE_ENV !== 'production'
-      && normalizedOrigin?.startsWith('http://localhost:517');
+      && /^http:\/\/(localhost|127\.0\.0\.1):517\d$/.test(normalizedOrigin);
 
     if (
       allowedOrigins.includes(normalizedOrigin)
@@ -106,6 +107,16 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', message: 'API StockRoute funcionando' });
 });
+
+// DAV fictício usado no roteiro público de demonstração.
+app.get('/demo/stockroute-dav-demo.pdf', (_req, res) => {
+  res
+    .type('application/pdf')
+    .attachment('stockroute-dav-demo.pdf')
+    .send(createDemoDavPdf());
+});
+
+app.use('/demo', express.static(path.resolve(process.cwd(), 'public', 'demo')));
 
 // Arquivos enviados (fotos de coleta do picking) — público para o frontend
 // conseguir exibir as evidências sem autenticação extra. Caminho relativo ao

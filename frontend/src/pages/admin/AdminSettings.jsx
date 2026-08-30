@@ -5,15 +5,7 @@ import { api } from '../../services/api.js';
 import './AdminSettings.css';
 
 export default function AdminSettings({ onNavigate }) {
-  // Toggles visuais locais; não persistem no backend nesta etapa.
-  const [toggles, setToggles] = useState({
-    shortcuts: true,
-    warnings: true,
-    requirePhoto: true,
-    requireReason: true,
-  });
   const [modal, setModal] = useState(null);
-  const [feedback, setFeedback] = useState(null);
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
@@ -22,14 +14,6 @@ export default function AdminSettings({ onNavigate }) {
       .then(setStats)
       .catch(() => setStats(null));
   }, []);
-
-  function toggle(name) {
-    if (name === 'requireReason' && toggles.requireReason) {
-      setFeedback('Essa regra é crítica para auditoria e não deve ser desativada sem ajuste no backend.');
-      return;
-    }
-    setToggles((current) => ({ ...current, [name]: !current[name] }));
-  }
 
   return (
     <div className="settings-page">
@@ -41,28 +25,23 @@ export default function AdminSettings({ onNavigate }) {
         </div>
       </section>
 
-      {feedback && <div className="settings-feedback" role="status">{feedback}</div>}
-
       <section className="settings-layout">
         <div className="settings-grid">
           <div className="card settings-card">
             <h2>Sistema</h2>
-            <div className="settings-kv"><span>Nome do sistema</span><strong>StockRoute</strong><span>Empresa</span><strong>Moto Madeiras</strong><span>Ambiente</span><strong>Teste</strong><span>Versão</span><strong>MVP inicial</strong></div>
-            <Toggle label="Mostrar atalhos na dashboard" active={toggles.shortcuts} onClick={() => toggle('shortcuts')} />
-            <Toggle label="Exibir avisos operacionais" active={toggles.warnings} onClick={() => toggle('warnings')} />
+            <div className="settings-kv"><span>Nome do sistema</span><strong>StockRoute</strong><span>Ambiente</span><strong>Sandbox de demonstração</strong><span>Dados</span><strong>Restauráveis</strong></div>
+            <p className="settings-note">Este ambiente usa as mesmas regras e APIs da aplicação real, com uma massa segura para apresentação.</p>
           </div>
 
           <div className="card settings-card">
             <h2>Upload DAV</h2>
-            <ul><li>Tipo aceito: PDF</li><li>Tamanho máximo: 10 MB</li><li>Parser atual: DAV padrão Moto Madeiras</li><li>PDFs escaneados: Não suportados no MVP</li><li>Revisão obrigatória antes da publicação: Sim</li></ul>
+            <ul><li>Tipo aceito: PDF</li><li>Tamanho máximo: 10 MB</li><li>Parser atual: DAV padrão</li><li>PDFs escaneados: Não suportados no MVP</li><li>Revisão obrigatória antes da publicação: Sim</li></ul>
             <button className="btn btn-secondary btn-sm" type="button" onClick={() => setModal('upload')}>Ver regras de upload</button>
           </div>
 
           <div className="card settings-card">
             <h2>Picking</h2>
             <ul><li>Foto obrigatória para item coletado</li><li>Item não encontrado exige motivo</li><li>Pedido com item não encontrado vai para OBSERVAÇÃO</li><li>Apenas itens publicados aparecem para o estoquista</li><li>Itens ignorados não aparecem no picking</li></ul>
-            <Toggle label="Exigir foto na coleta" active={toggles.requirePhoto} onClick={() => toggle('requirePhoto')} />
-            <Toggle label="Exigir motivo no item não encontrado" active={toggles.requireReason} onClick={() => toggle('requireReason')} />
           </div>
 
           <div className="card settings-card">
@@ -92,7 +71,9 @@ export default function AdminSettings({ onNavigate }) {
         <aside className="card settings-side">
           <h2>Indicadores reais</h2>
           <div className="settings-status-row"><span>Pedidos pendentes</span><strong>{stats?.ordersPending ?? '—'}</strong></div>
+          <div className="settings-status-row"><span>Publicados</span><strong>{stats?.ordersPublished ?? '—'}</strong></div>
           <div className="settings-status-row"><span>Em separação</span><strong>{stats?.ordersInProgress ?? '—'}</strong></div>
+          <div className="settings-status-row"><span>Em observação</span><strong>{stats?.ordersObservation ?? '—'}</strong></div>
           <div className="settings-status-row"><span>Concluídos</span><strong>{stats?.ordersCompleted ?? '—'}</strong></div>
           <div className="settings-status-row"><span>Produtos</span><strong>{stats?.totalProducts ?? '—'}</strong></div>
           <div className="settings-status-row"><span>Regras ativas</span><strong>{stats?.activeIgnoredRules ?? '—'}</strong></div>
@@ -115,13 +96,5 @@ export default function AdminSettings({ onNavigate }) {
         </div>
       )}
     </div>
-  );
-}
-
-function Toggle({ label, active, onClick }) {
-  return (
-    <button className={`settings-toggle${active ? ' active' : ''}`} type="button" onClick={onClick}>
-      <span>{label}</span><i />
-    </button>
   );
 }

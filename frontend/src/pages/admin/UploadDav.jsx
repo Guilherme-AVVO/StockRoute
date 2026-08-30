@@ -3,10 +3,13 @@ import { importDav, listOrders } from '../../services/orderService.js';
 import './UploadDav.css';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const DEMO_DAV_URL = `${import.meta.env.VITE_API_URL}/demo/stockroute-dav-demo.pdf`;
 
 const STATUS_LABEL = {
   PENDING:     { label: 'Aguardando revisão', cls: 'aguardando-revisao' },
-  IN_PROGRESS: { label: 'Em separação',       cls: 'em-separacao' },
+  IN_PROGRESS: { label: 'Aguardando picking',    cls: 'aguardando-revisao' },
+  PICKING:     { label: 'Em separação',       cls: 'em-separacao' },
+  OBSERVATION: { label: 'Em observação',      cls: 'observacao' },
   COMPLETED:   { label: 'Concluído',          cls: 'concluido' },
   CANCELLED:   { label: 'Cancelado',          cls: 'observacao' },
 };
@@ -189,6 +192,9 @@ export default function UploadDav() {
           </p>
         </div>
         <div className="hero-actions">
+          <a className="btn btn-primary" href={DEMO_DAV_URL} download>
+            Baixar DAV de demonstração
+          </a>
           <button className="btn btn-secondary" type="button" onClick={scrollToRecentDavs}>
             Ver DAVs recentes
           </button>
@@ -316,7 +322,7 @@ export default function UploadDav() {
                       </td>
                       <td>
                         <span className="counts">
-                          <span className="num">{order.totalItems}</span> itens
+                          <span className="num">{order.totalItems}</span> {order.totalItems === 1 ? 'item' : 'itens'}
                         </span>
                       </td>
                       <td>

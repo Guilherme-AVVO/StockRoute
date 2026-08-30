@@ -53,7 +53,7 @@ export default function RecentDavTable() {
                   <td><StatusBadge status={order.status} /></td>
                   <td>
                     <span className="counts">
-                      <span className="num">{order.totalItems ?? 0}</span> itens
+                      <span className="num">{order.totalItems ?? 0}</span> {(order.totalItems ?? 0) === 1 ? 'item' : 'itens'}
                     </span>
                   </td>
                 </tr>

@@ -5,12 +5,13 @@
 //   node db/migrate.js --seed     → migrations + seed
 import 'dotenv/config';
 import postgres from 'postgres';
-import { readFileSync, readdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const runSeed = process.argv.includes('--seed');
+const resetDemo = process.argv.includes('--demo-reset');
+const runSeed = process.argv.includes('--seed') || resetDemo;
 
 function getSslConfig() {
   if (process.env.DB_SSL !== 'true') return false;
@@ -51,6 +52,29 @@ async function main() {
     await runFile(join(migrationsDir, file), file);
   }
   console.log('[migrate] Migrations concluídas.\n');
+
+  if (resetDemo) {
+    // ponytail: reset global compartilhado; isolar por visitante se houver demos simultâneas.
+    console.log('[migrate] Restaurando sandbox de demonstração...');
+    await sql`
+      TRUNCATE TABLE
+        audit_events,
+        picking_evidences,
+        missing_items,
+        unlinked_dav_items,
+        order_items,
+        orders,
+        ignored_dav_items,
+        products,
+        users
+      RESTART IDENTITY CASCADE
+    `;
+
+    const pickingUploads = join(__dirname, '..', 'uploads', 'picking');
+    rmSync(pickingUploads, { recursive: true, force: true });
+    mkdirSync(pickingUploads, { recursive: true });
+    console.log('[migrate] Dados e uploads anteriores removidos.\n');
+  }
 
   if (runSeed) {
     const seedsDir = join(__dirname, 'seeds');

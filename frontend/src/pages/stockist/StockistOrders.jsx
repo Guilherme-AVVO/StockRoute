@@ -83,7 +83,7 @@ export default function StockistOrders({ user, onStart, onLogout }) {
             <span className="stk-header-avatar">{(user?.name || 'E').charAt(0)}</span>
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
               <span style={{ fontWeight: 600, color: '#fff' }}>{user?.name || 'Estoquista'}</span>
-              <span>ESTOQUISTA</span>
+              <span>ESTOQUISTA · SANDBOX</span>
             </div>
           </div>
           <button
