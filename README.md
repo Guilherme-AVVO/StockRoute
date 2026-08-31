@@ -162,6 +162,4 @@ O comando restaura a massa completa e pode ser repetido sempre que quiser voltar
 
 A especificação e os critérios de aceite estão em [`docs/SANDBOX_SPEC.md`](docs/SANDBOX_SPEC.md).
 
-## Status
 
-🚧 Em desenvolvimento
