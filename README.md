@@ -39,6 +39,22 @@ Ciclo completo de cada pedido, da revisão do DAV até o fechamento. A barra de 
 
 Trilha de auditoria. Cada evento registra quem fez, quando, sobre qual pedido e com qual evidência — é aqui que a pergunta "esse item foi separado?" encontra resposta.
 
+### Fila do estoquista
+
+![Fila de pedidos do estoquista, com o pedido em andamento destacado e um pedido aguardando separação](docs/screenshots/estoquista-pedidos-desktop.png)
+
+Ponto de entrada de quem separa. O pedido já em andamento aparece destacado e bloqueia o início de outro, para que ninguém deixe uma separação pela metade.
+
+### Separação
+
+![Tela de separação no desktop, com os itens do pedido em duas colunas e o progresso ao lado do nome do cliente](docs/screenshots/estoquista-picking-desktop.png)
+
+Item a item, com foto de referência, quantidade e as três ações possíveis: consultar a referência, coletar (exige foto) ou marcar como não encontrado. O pedido só fecha quando todos os itens têm decisão.
+
+A mesma tela no celular, que é onde ela roda de verdade — o estoquista está andando pelo galpão com uma mão no telefone:
+
+<img src="docs/screenshots/estoquista-picking-mobile.png" alt="Tela de separação no celular, com os itens empilhados em coluna única e a barra de finalizar fixa no rodapé" width="360">
+
 ## Principais funcionalidades
 
 - Autenticação JWT com controle de permissões
