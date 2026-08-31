@@ -116,12 +116,20 @@ app.get('/demo/stockroute-dav-demo.pdf', (_req, res) => {
     .send(createDemoDavPdf());
 });
 
-app.use('/demo', express.static(path.resolve(process.cwd(), 'public', 'demo')));
+// O helmet marca todas as respostas com Cross-Origin-Resource-Policy: same-origin,
+// o que faz o navegador recusar estas imagens quando o frontend roda em outro
+// dominio. Liberamos apenas os assets estaticos; as rotas de API seguem protegidas.
+const allowCrossOriginAssets = (_req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+};
+
+app.use('/demo', allowCrossOriginAssets, express.static(path.resolve(process.cwd(), 'public', 'demo')));
 
 // Arquivos enviados (fotos de coleta do picking) — público para o frontend
 // conseguir exibir as evidências sem autenticação extra. Caminho relativo ao
 // processo é convertido para absoluto pelo path.resolve.
-app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+app.use('/uploads', allowCrossOriginAssets, express.static(path.resolve(process.cwd(), 'uploads')));
 
 app.use('/auth',               authRoutes);
 app.use('/products',           productRoutes);
