@@ -269,7 +269,23 @@
   margin-top: 12px;
 }
 
-.stk-item-actions .stk-btn { width: 100%; min-height: 48px; }
+/* min-width: 0 impede que o texto "Nao encontrado" estoure a coluna do
+   grid: itens de grid tem min-width auto e nao encolhem abaixo do
+   conteudo, o que causava scroll horizontal no celular. */
+.stk-item-actions .stk-btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Em telas estreitas o icone rouba os ~24px que faltam para o rotulo
+   "Nao encontrado" caber sem ser cortado. O texto sozinho ja identifica
+   a acao, entao o icone sai apenas aqui. */
+@media (max-width: 479px) {
+  .stk-item-actions .stk-btn svg { display: none; }
+}
 
 /* "Coletar" em destaque, ocupa coluna inteira no topo */
 .stk-item-actions .stk-btn-success {
@@ -387,4 +403,113 @@
   width: 100%;
   min-height: 52px;
   font-size: 16px;
+}
+
+/* ============================================================
+   Telas grandes (≥900px) — separação no desktop
+   ============================================================ */
+/* A barra fixa acompanha o shell de tablet antes do layout de desktop. */
+@media (min-width: 700px) {
+  .stk-finish-bar { max-width: 720px; }
+}
+
+@media (min-width: 900px) {
+  /* O cabeçalho passa a usar a horizontal: identificação do pedido à
+     esquerda, progresso à direita, na mesma linha de leitura. */
+  .stk-header-picking {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+    column-gap: 32px;
+    align-items: start;
+    padding-bottom: 22px;
+  }
+
+  .stk-header-picking .stk-header-top { grid-column: 1 / -1; }
+
+  .stk-header-picking h1,
+  .stk-header-picking .stk-header-subtitle { grid-column: 1; }
+
+  .stk-header-picking h1 { font-size: 26px !important; margin-top: 12px; }
+
+  .stk-header-picking .stk-progress {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    margin-top: 12px;
+    align-self: center;
+  }
+
+  .stk-picking-content { padding-top: 20px; }
+
+  /* Filtros ocupam apenas a largura do próprio conteúdo. Esticados por
+     1120px viravam quatro botões gigantes e distantes do olho. */
+  .stk-segmented {
+    width: fit-content;
+    max-width: 100%;
+    margin-bottom: 18px;
+  }
+
+  .stk-seg-btn {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  /* O ganho principal: itens lado a lado. auto-fit resolve 2 ou 3 colunas
+     conforme a janela, sem breakpoint extra. */
+  .stk-items-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+
+  .stk-item { padding: 16px; }
+
+  .stk-item-thumb {
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+  }
+
+  .stk-item-name { font-size: 15px; }
+
+  .stk-item-meta { font-size: 12px; }
+
+  .stk-item-actions {
+    grid-template-columns: 1fr 1.15fr 1.3fr;
+    gap: 10px;
+  }
+
+  .stk-item-actions .stk-btn { min-height: 42px; }
+
+  /* Barra de finalizar: some a faixa de 480px centralizada e entra uma
+     barra do tamanho do conteúdo, com o resumo à esquerda e a ação à
+     direita — onde o olho já está depois de percorrer a lista. */
+  .stk-finish-bar {
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 1120px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 12px 20px;
+    border: 1px solid var(--surface-variant);
+    border-bottom: none;
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+  }
+
+  .stk-finish-hint {
+    margin: 0;
+    text-align: left;
+    font-size: 13px;
+  }
+
+  .stk-finish-btn {
+    width: auto;
+    min-width: 240px;
+    min-height: 46px;
+  }
 }

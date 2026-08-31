@@ -272,3 +272,57 @@
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* ============================================================
+   Telas grandes (≥900px) — desk do estoquista
+   O celular continua sendo o contexto principal e nada acima
+   deste breakpoint altera o layout mobile. Aqui o objetivo é
+   outro: o estoquista está sentado, usa mouse e teclado e quer
+   ver mais itens de uma vez, não uma coluna de 480px no meio
+   de um monitor vazio.
+   ============================================================ */
+/* Tablet: ainda uma coluna, mas larga o bastante para os rotulos de acao
+   caberem em uma linha. Sem isso um iPad mostra a coluna de 480px com
+   metade da tela vazia dos dois lados. */
+@media (min-width: 700px) {
+  .stockist-shell { max-width: 720px; }
+}
+
+@media (min-width: 900px) {
+  .stockist-shell {
+    max-width: 1120px;
+    padding-bottom: 112px;
+  }
+
+  .stk-header {
+    padding: 18px 28px 22px;
+    border-bottom-left-radius: 28px;
+    border-bottom-right-radius: 28px;
+  }
+
+  .stk-header h1 { font-size: 26px; }
+
+  .stk-header-subtitle { font-size: 14px; }
+
+  /* Botões deixam de ser full-width por padrão: no desktop o bloco
+     inteiro esticado parece um formulário mobile ampliado. */
+  .stk-btn { width: auto; }
+}
+
+/* Mouse ou trackpad: alvos de toque de 48px viram desperdício de
+   espaço vertical. Reduzimos apenas onde o ponteiro é preciso,
+   mantendo 48px em qualquer tela com toque. */
+@media (min-width: 900px) and (pointer: fine) {
+  .stk-btn    { min-height: 42px; font-size: 14px; }
+  .stk-btn-sm { min-height: 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stockist-root *,
+  .stockist-root *::before,
+  .stockist-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

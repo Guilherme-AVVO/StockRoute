@@ -252,3 +252,23 @@
 }
 
 .stk-summary-actions .stk-btn { width: 100%; }
+
+/* ============================================================
+   Telas grandes (≥900px) — resumo final no desktop
+   ============================================================ */
+@media (min-width: 900px) {
+  .stk-header-summary { padding: 20px 28px 24px; }
+
+  .stk-summary-kpis {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .stk-summary-block { padding: 18px; }
+
+  .stk-photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+}
