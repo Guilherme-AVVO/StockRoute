@@ -19,6 +19,26 @@ Sugestão de percurso: entre como **ADMIN**, use *Baixar DAV de demonstração* 
 
 A interface do estoquista é desenhada para o celular, mas funciona igualmente no desktop.
 
+## Telas
+
+### Dashboard do administrador
+
+![Dashboard do administrador, com indicadores da operação, o fluxo do pedido em seis etapas e a lista de DAVs recentes](docs/screenshots/admin-dashboard.png)
+
+Estado da operação em números e a fila de DAVs recentes. O diagrama do meio marca em que etapa o administrador atua, e a coluna da direita concentra o que espera decisão: publicações pendentes, pedidos em separação e itens ignorados automaticamente por regra.
+
+### Pedidos
+
+![Tela de pedidos, com filtros por status, tabela de pedidos com barra de progresso e painel lateral do pedido selecionado](docs/screenshots/admin-pedidos.png)
+
+Ciclo completo de cada pedido, da revisão do DAV até o fechamento. A barra de progresso mostra o avanço da separação em tempo real, e o painel lateral detalha o pedido selecionado sem tirar o administrador da lista.
+
+### Histórico
+
+![Tela de histórico, com filtros por tipo de evento e período, e tabela de eventos com responsável, status e evidência](docs/screenshots/admin-historico.png)
+
+Trilha de auditoria. Cada evento registra quem fez, quando, sobre qual pedido e com qual evidência — é aqui que a pergunta "esse item foi separado?" encontra resposta.
+
 ## Principais funcionalidades
 
 - Autenticação JWT com controle de permissões
