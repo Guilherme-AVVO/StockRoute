@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Item de estoque</title>
+  <desc id="desc">Ilustração genérica de uma caixa de estoque, usada quando o produto não tem foto.</desc>
+  <rect width="640" height="420" rx="32" fill="#f4f2fe"/>
+  <g fill="#dde1ff" stroke="#2a4dd7" stroke-width="14">
+    <path d="M320 92 L536 172 L536 300 L320 380 L104 300 L104 172 Z"/>
+    <path d="M104 172 L320 252 L536 172" fill="none"/>
+    <path d="M320 252 L320 380" fill="none"/>
+    <path d="M212 132 L428 212 L428 268 L212 188 Z" fill="#b9c3ff"/>
+  </g>
+</svg>

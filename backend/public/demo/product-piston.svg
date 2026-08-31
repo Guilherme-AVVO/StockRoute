@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Pistão de demonstração</title>
+  <desc id="desc">Ilustração de um pistão hidráulico para referência visual do estoquista.</desc>
+  <rect width="640" height="420" rx="32" fill="#f4f2fe"/>
+  <g fill="#dde1ff" stroke="#2a4dd7" stroke-width="14">
+    <rect x="70" y="150" width="250" height="120" rx="36"/>
+    <rect x="320" y="185" width="180" height="50" rx="20" fill="#b9c3ff"/>
+    <circle cx="540" cy="210" r="52"/>
+    <circle cx="540" cy="210" r="18" fill="#fff"/>
+    <circle cx="128" cy="210" r="20" fill="#fff"/>
+  </g>
+</svg>

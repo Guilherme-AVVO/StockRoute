@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Corrediça de demonstração</title>
+  <desc id="desc">Ilustração de uma corrediça telescópica para referência visual do estoquista.</desc>
+  <rect width="640" height="420" rx="32" fill="#f4f2fe"/>
+  <g fill="#dde1ff" stroke="#2a4dd7" stroke-width="14">
+    <rect x="60" y="120" width="520" height="72" rx="26"/>
+    <rect x="140" y="228" width="440" height="72" rx="26" fill="#b9c3ff"/>
+    <circle cx="130" cy="156" r="16" fill="#fff"/>
+    <circle cx="510" cy="156" r="16" fill="#fff"/>
+    <circle cx="210" cy="264" r="16" fill="#fff"/>
+    <circle cx="510" cy="264" r="16" fill="#fff"/>
+  </g>
+</svg>

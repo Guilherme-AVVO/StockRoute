@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Rolo de fita de demonstração</title>
+  <desc id="desc">Ilustração de um rolo de fita para referência visual do estoquista.</desc>
+  <rect width="640" height="420" rx="32" fill="#f4f2fe"/>
+  <g fill="#dde1ff" stroke="#2a4dd7" stroke-width="14">
+    <circle cx="320" cy="210" r="140"/>
+    <circle cx="320" cy="210" r="58" fill="#b9c3ff"/>
+    <path d="M320 70 A140 140 0 0 1 460 210 L402 210 A82 82 0 0 0 320 128 Z" fill="#b9c3ff"/>
+  </g>
+  <path d="M446 250 L586 300 L586 346 L446 296 Z" fill="#dde1ff" stroke="#2a4dd7" stroke-width="14" stroke-linejoin="round"/>
+</svg>
